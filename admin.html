@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EzBac Admin | Content Management</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #BB181D;
+            --primary-hover: #9a1418;
+            --bg-light: #fefefe;
+            --text-dark: #2D2D2D;
+            --shadow-soft: 0 10px 30px rgba(0,0,0,0.05);
+            --radius-main: 24px;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #f8f9fa;
+            margin: 0;
+            color: var(--text-dark);
+            min-height: 100vh;
+        }
+
+        /* Password Gate */
+        #loginGate {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .login-card {
+            background: white;
+            padding: 40px;
+            border-radius: var(--radius-main);
+            box-shadow: var(--shadow-soft);
+            text-align: center;
+            width: 320px;
+        }
+
+        .login-card input {
+            width: 100%;
+            padding: 15px;
+            margin: 20px 0;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        /* Dashboard Styles */
+        .admin-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+
+        .admin-sidebar {
+            background: white;
+            padding: 40px 20px;
+            border-right: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .nav-btn, .nav-btn-exit {
+            background: none;
+            border: none;
+            padding: 15px 20px;
+            text-align: left;
+            border-radius: 15px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 500;
+            color: #666;
+            transition: 0.3s;
+            width: 100%;
+        }
+
+        .nav-btn.active {
+            background: #fff0f0;
+            color: var(--primary);
+        }
+
+        .nav-btn:hover, .nav-btn-exit:hover {
+            background: #fdfdfd;
+            color: var(--primary);
+        }
+
+        .admin-main {
+            padding: 40px;
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .section-card {
+            background: white;
+            padding: 40px;
+            border-radius: var(--radius-main);
+            box-shadow: var(--shadow-soft);
+            margin-bottom: 30px;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #f0f0f0;
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 15px;
+            transition: 0.3s;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus { border-color: var(--primary); outline: none; }
+
+        .btn-save {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+            width: 100%;
+        }
+
+        .btn-save:hover { background: var(--primary-hover); transform: translateY(-2px); }
+
+        /* Data List View */
+        .data-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .delete-btn {
+            color: #BB181D;
+            cursor: pointer;
+            font-weight: bold;
+            padding: 8px;
+        }
+
+        .hidden { display: none !important; }
+
+        /* Toast Alert */
+        #toast {
+            position: fixed;
+            bottom: 30px; left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            z-index: 10000;
+            opacity: 0;
+            transition: 0.3s;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- PASSWORD GATE -->
+    <div id="loginGate">
+        <div class="login-card">
+            <img src="assets/images/logo.svg" style="height: 40px; margin-bottom: 20px;">
+            <h2>Admin Login</h2>
+            <input type="password" id="adminPass" placeholder="Enter Password">
+            <button class="btn-save" onclick="checkAuth()">Access Portal</button>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD -->
+    <div class="admin-layout hidden" id="adminDashboard">
+        
+        <div class="admin-sidebar">
+            <div style="padding: 0 20px; margin-bottom: 30px;">
+                <img src="assets/images/logo.svg" style="height: 35px;">
+                <p style="color: #999; font-size: 12px; margin-top: 5px;">EzBac CMS v2.0</p>
+            </div>
+            <button class="nav-btn active" data-target="add-quiz">➕ Add Quiz</button>
+            <button class="nav-btn" data-target="add-flash">➕ Add Flashcard</button>
+            <button class="nav-btn" data-target="add-resource">➕ Add Resource</button>
+            <button class="nav-btn" data-target="view-data">📋 View Data</button>
+            <hr style="width: 100%; border: none; border-top: 1px solid #eee; margin: 20px 0;">
+            <button class="nav-btn-exit" onclick="location.href='home.html'">⬅ Exit Admin</button>
+        </div>
+
+        <div class="admin-main">
+            
+            <!-- SECTION: ADD QUIZ -->
+            <div id="add-quiz" class="admin-section">
+                <div class="section-card">
+                    <h2>Add New Quiz</h2>
+                    <form id="quizForm">
+                        <div class="form-group">
+                            <label>Subject</label>
+                            <select id="q-subject" required>
+                                <option value="Math">Math</option>
+                                <option value="Physics">Physics</option>
+                                <option value="Chemistry">Chemistry</option>
+                                <option value="SVT">SVT</option>
+                                <option value="Philosophy">Philosophy</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Question</label>
+                            <textarea id="q-text" placeholder="Enter the question..." required></textarea>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div class="form-group"><label>Option 1</label><input type="text" id="q-opt1" required></div>
+                            <div class="form-group"><label>Option 2</label><input type="text" id="q-opt2" required></div>
+                            <div class="form-group"><label>Option 3</label><input type="text" id="q-opt3" required></div>
+                            <div class="form-group"><label>Option 4</label><input type="text" id="q-opt4" required></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Correct Answer (Exact match with one of the options Above)</label>
+                            <input type="text" id="q-correct" required>
+                        </div>
+                        <button type="submit" class="btn-save">Save Quiz Item</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- SECTION: ADD FLASHCARD -->
+            <div id="add-flash" class="admin-section hidden">
+                <div class="section-card">
+                    <h2>Add New Flashcard</h2>
+                    <form id="flashForm">
+                        <div class="form-group">
+                            <label>Subject</label>
+                            <input type="text" id="f-subject" placeholder="e.g. Physics" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Front (Question)</label>
+                            <input type="text" id="f-question" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Back (Answer)</label>
+                            <textarea id="f-answer" required></textarea>
+                        </div>
+                        <button type="submit" class="btn-save">Save Flashcard</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- SECTION: ADD RESOURCE -->
+            <div id="add-resource" class="admin-section hidden">
+                <div class="section-card">
+                    <h2>Add New Resource</h2>
+                    <form id="resForm">
+                        <div class="form-group">
+                            <label>Subject</label>
+                            <input type="text" id="r-subject" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Title</label>
+                            <input type="text" id="r-title" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Type</label>
+                            <select id="r-type">
+                                <option value="drive">📂 Google Drive</option>
+                                <option value="youtube">🎥 YouTube Video</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>URL</label>
+                            <input type="url" id="r-url" placeholder="https://..." required>
+                        </div>
+                        <button type="submit" class="btn-save">Save Resource</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- SECTION: VIEW DATA -->
+            <div id="view-data" class="admin-section hidden">
+                <div class="section-card">
+                    <h2>Live Content Monitor</h2>
+                    <div style="margin-bottom: 20px;">
+                        <button onclick="fetchListView('quizzes')">Quiz Data</button>
+                        <button onclick="fetchListView('flashcards')">Flashcard Data</button>
+                        <button onclick="fetchListView('resources')">Resources</button>
+                    </div>
+                    <div id="dataList">
+                        <p style="color: #aaa;">Select a category above to view items.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="toast">Saved Successfully!</div>
+
+    <!-- FIREBASE SDK -->
+    <script type="module">
+        import { db } from './firebase.js';
+        import { collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // AUTH CHECK
+        window.checkAuth = function() {
+            const pass = document.getElementById("adminPass").value;
+            if (pass === "admin123") { // HARDCODED PASSWORD
+                document.getElementById("loginGate").classList.add("hidden");
+                document.getElementById("adminDashboard").classList.remove("hidden");
+            } else {
+                alert("Incorrect Password!");
+            }
+        };
+
+        // NAV LOGIC
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.onclick = () => {
+                const target = btn.dataset.target;
+                if(!target) return;
+                
+                document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'));
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                
+                document.getElementById(target).classList.remove('hidden');
+                btn.classList.add('active');
+            };
+        });
+
+        // TOAST LOGIC
+        function showToast(msg = "Saved Successfully!") {
+            const t = document.getElementById("toast");
+            t.innerText = msg;
+            t.style.opacity = "1";
+            setTimeout(() => t.style.opacity = "0", 3000);
+        }
+
+        // SAVE QUIZ
+        document.getElementById("quizForm").onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                subject: document.getElementById("q-subject").value,
+                question: document.getElementById("q-text").value,
+                options: [
+                    document.getElementById("q-opt1").value,
+                    document.getElementById("q-opt2").value,
+                    document.getElementById("q-opt3").value,
+                    document.getElementById("q-opt4").value
+                ],
+                correctAnswer: document.getElementById("q-correct").value
+            };
+            
+            try {
+                await addDoc(collection(db, "quizzes"), data);
+                showToast();
+                e.target.reset();
+            } catch (err) { alert("Error: " + err.message); }
+        };
+
+        // SAVE FLASHCARD
+        document.getElementById("flashForm").onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                subject: document.getElementById("f-subject").value,
+                question: document.getElementById("f-question").value,
+                answer: document.getElementById("f-answer").value
+            };
+            
+            try {
+                await addDoc(collection(db, "flashcards"), data);
+                showToast();
+                e.target.reset();
+            } catch (err) { alert("Error: " + err.message); }
+        };
+
+        // SAVE RESOURCE
+        document.getElementById("resForm").onsubmit = async (e) => {
+            e.preventDefault();
+            const url = document.getElementById("r-url").value;
+            if(!url.startsWith("http")) return alert("Please enter a valid URL");
+
+            const data = {
+                subject: document.getElementById("r-subject").value,
+                title: document.getElementById("r-title").value,
+                type: document.getElementById("r-type").value,
+                url: url
+            };
+            
+            try {
+                await addDoc(collection(db, "resources"), data);
+                showToast();
+                e.target.reset();
+            } catch (err) { alert("Error: " + err.message); }
+        };
+
+        // VIEW / DELETE DATA
+        window.fetchListView = async (colName) => {
+            const list = document.getElementById("dataList");
+            list.innerHTML = "<p>Loading...</p>";
+            
+            try {
+                const querySnapshot = await getDocs(collection(db, colName));
+                list.innerHTML = "";
+                querySnapshot.forEach((docSnap) => {
+                    const item = docSnap.data();
+                    const div = document.createElement("div");
+                    div.className = "data-item";
+                    div.innerHTML = `
+                        <span><strong>[${item.subject}]</strong> ${item.title || item.question.substring(0, 30)}...</span>
+                        <span class="delete-btn" onclick="deleteItem('${colName}', '${docSnap.id}')">✕ Delete</span>
+                    `;
+                    list.appendChild(div);
+                });
+            } catch (err) { list.innerHTML = "Error loading data."; }
+        };
+
+        window.deleteItem = async (colName, id) => {
+            if(!confirm("Are you sure?")) return;
+            try {
+                await deleteDoc(doc(db, colName, id));
+                showToast("Deleted Successfully!");
+                fetchListView(colName);
+            } catch (err) { alert("Error: " + err.message); }
+        };
+
+    </script>
+</body>
+</html>
