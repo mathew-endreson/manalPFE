@@ -2761,3 +2761,216 @@ button {
     flex-direction: column;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE OVERRIDES (MOBILE & TABLET)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body {
+    overflow-x: hidden; /* Prevent horizontal scroll */
+}
+
+@media (max-width: 1024px) {
+    /* FOOTER */
+    .footer-container {
+        flex-direction: column;
+        gap: 40px;
+    }
+    
+    .footer-right {
+        justify-content: flex-start;
+        gap: 40px;
+    }
+
+    /* ABOUT SECTION */
+    .about-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 992px) {
+    /* USER DASHBOARD */
+    .dashboard-content {
+        flex-direction: column;
+        margin-top: 80px;
+    }
+
+    .dashboard-left, .dashboard-right {
+        width: 100%;
+    }
+
+    .dashboard-right {
+        position: static; /* No longer sticky on mobile */
+        order: -1; /* Move widgets like Pomodoro above content for quick access */
+        margin-bottom: 20px;
+    }
+
+    /* NAV LINKS */
+    .dashboard-links {
+        gap: 20px;
+        overflow-x: auto;
+        padding-bottom: 5px;
+    }
+
+    .dashboard-links::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    /* NAVBAR */
+    .nav-container {
+        padding: 10px 20px;
+        height: auto;
+    }
+
+    .nav-left {
+        gap: 10px;
+    }
+
+    .logo img {
+        height: 60px;
+    }
+
+    /* HERO SECTION */
+    .hero-container {
+        flex-direction: column;
+        text-align: center;
+        margin-top: 40px;
+    }
+
+    .hero-left h1 {
+        font-size: 2.2rem;
+        line-height: 1.2;
+        max-width: 100%;
+    }
+
+    .hero-buttons {
+        margin-top: 40px;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .btn-primary {
+        width: 100%;
+        text-align: center;
+    }
+
+    .btn-play {
+        justify-content: center;
+    }
+
+    /* SECTIONS */
+    .about, .teachers, .faq, .footer {
+        margin-top: 80px;
+    }
+
+    .about-header h1, .teachers-left h2, .faq-left h2 {
+        font-size: 2rem;
+    }
+
+    /* SERVICES GRID */
+    .services-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-top: 40px;
+    }
+
+    /* CARDS */
+    .courses-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .course-card {
+        min-width: 100%;
+    }
+
+    /* QUIZ PAGE */
+    .quiz-question h4 {
+        font-size: 1.4rem;
+    }
+}
+
+@media (max-width: 480px) {
+    /* EXTREME SMALL PHONES */
+    .about-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .search-box h2 {
+        font-size: 1.6rem;
+    }
+
+    .field {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .tag {
+        font-size: 0.8rem;
+    }
+
+    .card-title {
+        font-size: 1.2rem;
+    }
+
+    .nav-item span {
+        display: none;
+    }
+    
+    .dashboard-links {
+        justify-content: space-around;
+        gap: 10px;
+    }
+
+    .dashboard-navbar .dashboard-container {
+        padding: 10px;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ADMIN RESPONSIVE FIXES
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 850px) {
+    .admin-layout {
+        display: block !important;
+    }
+
+    .admin-sidebar {
+        padding: 15px;
+        flex-direction: row !important;
+        overflow-x: auto;
+        white-space: nowrap;
+        gap: 10px !important;
+        border-right: none;
+        border-bottom: 1px solid #eee;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .admin-sidebar > div {
+        display: none; /* Hide logo title in mobile sidebar to save space */
+    }
+
+    .nav-btn, .nav-btn-exit {
+        padding: 10px 15px;
+        width: auto !important;
+        white-space: nowrap;
+    }
+
+    .admin-main {
+        padding: 15px;
+    }
+    
+    .section-card {
+        padding: 20px;
+        border-radius: 12px;
+    }
+
+    .data-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}

@@ -103,25 +103,80 @@ body.dark .control-btn:hover {
     background: #484f58;
 }
 
-/* Quiz/Checklist Effects */
-.correct-feedback {
-    animation: success-pop 0.4s ease;
-    border: 2px solid #22c55e !important;
+
+/* --- CINEMATIC ANIMATIONS --- */
+
+@keyframes float {
+    0% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-15px) rotate(1deg); }
+    100% { transform: translateY(0px) rotate(0deg); }
 }
 
-.wrong-feedback {
-    animation: shake 0.4s ease;
-    border: 2px solid #ef4444 !important;
+@keyframes glow-pulse {
+    0% { box-shadow: 0 0 5px rgba(187, 24, 29, 0.2); }
+    50% { box-shadow: 0 0 20px rgba(187, 24, 29, 0.6); }
+    100% { box-shadow: 0 0 5px rgba(187, 24, 29, 0.2); }
 }
 
-@keyframes success-pop {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
+@keyframes slide-in-blurred {
+    0% { transform: translateY(50px) scale(0.9); filter: blur(10px); opacity: 0; }
+    100% { transform: translateY(0) scale(1); filter: blur(0); opacity: 1; }
 }
 
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
+.cinematic-float {
+    animation: float 6s ease-in-out infinite;
 }
+
+.glow-btn {
+    animation: glow-pulse 3s infinite;
+}
+
+.reveal-cinematic {
+    animation: slide-in-blurred 0.8s var(--ease-out) forwards;
+}
+
+/* --- REACTIVE BUTTONS --- */
+.btn-reactive {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.btn-reactive:hover {
+    letter-spacing: 1px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+}
+
+.btn-reactive:active {
+    transform: scale(0.92) translateY(2px);
+    box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+}
+
+/* Staggered Delay Helpers */
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+
+/* Horizontal Reveal */
+.reveal-left {
+    opacity: 0;
+    transform: translateX(-30px);
+    transition: all 0.8s var(--ease-out);
+}
+.reveal-left.active {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.reveal-right {
+    opacity: 0;
+    transform: translateX(30px);
+    transition: all 0.8s var(--ease-out);
+}
+
+/* Feedback Effects */
+.correct-feedback { animation: success-pop 0.4s ease; border: 2px solid #22c55e !important; }
+.wrong-feedback { animation: shake 0.4s ease; border: 2px solid #ef4444 !important; }
+@keyframes success-pop { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
