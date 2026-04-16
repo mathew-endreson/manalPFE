@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EzBac | Dynamic Quiz</title>
+    <title>EzBac | Quiz</title>
+    <link rel="icon" type="image/png" href="ezbac-icon.png">
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -104,7 +105,14 @@
             const querySnapshot = await getDocs(q);
             
             querySnapshot.forEach((doc) => {
-                quizData.push(doc.data());
+                const data = doc.data();
+                if (data.questions && Array.isArray(data.questions)) {
+                    // It's a multi-question quiz doc
+                    quizData.push(...data.questions);
+                } else {
+                    // It's a legacy single-question quiz doc
+                    quizData.push(data);
+                }
             });
 
             if (quizData.length === 0) {
@@ -112,10 +120,12 @@
                 return;
             }
 
+            // Shuffle if desired, or keep as is
             loading.classList.add("hidden");
             cover.classList.remove("hidden");
             document.getElementById("displaySubject").innerText = `${selectedSubject} Quiz`;
             document.querySelector(".quiz-title").innerText = selectedSubject;
+            document.querySelector(".quiz-description").innerText = `${quizData.length} interactive questions found.`;
         } catch (err) {
             loading.innerHTML = `<h2>Error loading data.</h2><p>${err.message}</p>`;
         }
@@ -153,34 +163,42 @@
     function selectAnswer(selected, element) {
         const q = quizData[currentQuestion];
         const answers = document.querySelectorAll(".answer");
+        
+        // Prevent double clicking
         answers.forEach(a => a.style.pointerEvents = "none");
 
-        if (selected === q.correctAnswer) {
+        const isCorrect = selected === q.correctAnswer;
+        
+        if (isCorrect) {
             element.classList.add("correct");
             score++;
         } else {
             element.classList.add("wrong");
-            // Highlight correct one
+            // Find and show the correct one
             answers.forEach(a => {
-                if(a.innerText.trim() === q.correctAnswer) a.classList.add("correct");
+                if (a.innerText.trim() === q.correctAnswer) {
+                    a.classList.add("correct");
+                }
             });
         }
 
         setTimeout(() => {
             currentQuestion++;
             loadQuestion();
-        }, 1200);
+        }, 1500);
     }
 
     function showResults() {
         active.innerHTML = `
-            <div class="test-result" style="text-align:center; padding: 100px 0;">
+            <div class="test-result" style="text-align:center; padding: 60px 20px; animation: slideUp 0.6s ease;">
                 <h1 style="font-size: 5rem; color: #BB181D; margin-bottom: 20px;">${score} / ${quizData.length}</h1>
-                <h2>Session Complete!</h2>
-                <p style="margin: 20px 0; color: #666;">Great effort on the ${selectedSubject} quiz.</p>
+                <h2 style="font-weight: 700;">Quiz Finished!</h2>
+                <p style="margin: 20px 0; color: #666; max-width: 400px; margin-left: auto; margin-right: auto;">
+                    ${score === quizData.length ? 'Perfect Score! You are ready for the BAC.' : 'Good job! Keep practicing to improve your score.'}
+                </p>
                 <div style="display:flex; gap:16px; justify-content:center; margin-top: 30px;">
-                    <button class="btn-primary" onclick="location.reload()">Restart</button>
-                    <button class="btn-primary" onclick="window.location.href='home.html'">Finish</button>
+                    <button class="btn-primary" onclick="location.reload()" style="padding: 12px 30px;">Restart</button>
+                    <button class="btn-primary" onclick="window.location.href='home.html'" style="padding: 12px 30px; background: #333;">Dashboard</button>
                 </div>
             </div>
         `;

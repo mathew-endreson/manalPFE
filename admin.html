@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EzBac Admin | Content Management</title>
+    <link rel="icon" type="image/png" href="ezbac-icon.png">
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -227,29 +228,34 @@
                     <form id="quizForm">
                         <div class="form-group">
                             <label>Subject</label>
-                            <select id="q-subject" required>
-                                <option value="Math">Math</option>
-                                <option value="Physics">Physics</option>
-                                <option value="Chemistry">Chemistry</option>
-                                <option value="SVT">SVT</option>
-                                <option value="Philosophy">Philosophy</option>
-                            </select>
+                            <input type="text" id="q-subject" placeholder="e.g. History, Math, SVT..." required>
                         </div>
-                        <div class="form-group">
-                            <label>Question</label>
-                            <textarea id="q-text" placeholder="Enter the question..." required></textarea>
+                        
+                        <div id="questionsContainer">
+                            <!-- Questions added here -->
+                            <div class="question-entry" style="border: 1px solid #eee; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                                <div class="form-group">
+                                    <label>Question 1</label>
+                                    <textarea class="q-text" placeholder="Enter the question..." required></textarea>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                    <div class="form-group"><label>Opt 1</label><input type="text" class="q-opt1" required></div>
+                                    <div class="form-group"><label>Opt 2</label><input type="text" class="q-opt2" required></div>
+                                    <div class="form-group"><label>Opt 3</label><input type="text" class="q-opt3" required></div>
+                                    <div class="form-group"><label>Opt 4</label><input type="text" class="q-opt4" required></div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Correct Answer (Exact match)</label>
+                                    <input type="text" class="q-correct" required>
+                                </div>
+                            </div>
                         </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                            <div class="form-group"><label>Option 1</label><input type="text" id="q-opt1" required></div>
-                            <div class="form-group"><label>Option 2</label><input type="text" id="q-opt2" required></div>
-                            <div class="form-group"><label>Option 3</label><input type="text" id="q-opt3" required></div>
-                            <div class="form-group"><label>Option 4</label><input type="text" id="q-opt4" required></div>
-                        </div>
-                        <div class="form-group">
-                            <label>Correct Answer (Exact match with one of the options Above)</label>
-                            <input type="text" id="q-correct" required>
-                        </div>
-                        <button type="submit" class="btn-save">Save Quiz Item</button>
+
+                        <button type="button" id="addQuestionBtn" style="background: #f1f5f9; color: #333; margin-bottom: 20px; padding: 12px; border-radius: 10px; font-weight: 600;" class="nav-btn">
+                            + Add Another Question
+                        </button>
+
+                        <button type="submit" class="btn-save">Save Quiz Package</button>
                     </form>
                 </div>
             </div>
@@ -363,25 +369,68 @@
             setTimeout(() => t.style.opacity = "0", 3000);
         }
 
+        // ADD QUESTION FIELD
+        document.getElementById("addQuestionBtn").onclick = () => {
+            const container = document.getElementById("questionsContainer");
+            const qCount = container.children.length + 1;
+            const qDiv = document.createElement("div");
+            qDiv.className = "question-entry";
+            qDiv.style = "border: 1px solid #eee; padding: 20px; border-radius: 12px; margin-bottom: 20px;";
+            qDiv.innerHTML = `
+                <div class="form-group">
+                    <label>Question ${qCount}</label>
+                    <textarea class="q-text" placeholder="Enter the question..." required></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="form-group"><label>Opt 1</label><input type="text" class="q-opt1" required></div>
+                    <div class="form-group"><label>Opt 2</label><input type="text" class="q-opt2" required></div>
+                    <div class="form-group"><label>Opt 3</label><input type="text" class="q-opt3" required></div>
+                    <div class="form-group"><label>Opt 4</label><input type="text" class="q-opt4" required></div>
+                </div>
+                <div class="form-group">
+                    <label>Correct Answer</label>
+                    <input type="text" class="q-correct" required>
+                </div>
+            `;
+            container.appendChild(qDiv);
+        };
+
         // SAVE QUIZ
         document.getElementById("quizForm").onsubmit = async (e) => {
             e.preventDefault();
+            const subject = document.getElementById("q-subject").value;
+            const qEntries = document.querySelectorAll(".question-entry");
+            
+            const questions = [];
+            qEntries.forEach(entry => {
+                questions.push({
+                    question: entry.querySelector(".q-text").value,
+                    options: [
+                        entry.querySelector(".q-opt1").value,
+                        entry.querySelector(".q-opt2").value,
+                        entry.querySelector(".q-opt3").value,
+                        entry.querySelector(".q-opt4").value
+                    ],
+                    correctAnswer: entry.querySelector(".q-correct").value
+                });
+            });
+
             const data = {
-                subject: document.getElementById("q-subject").value,
-                question: document.getElementById("q-text").value,
-                options: [
-                    document.getElementById("q-opt1").value,
-                    document.getElementById("q-opt2").value,
-                    document.getElementById("q-opt3").value,
-                    document.getElementById("q-opt4").value
-                ],
-                correctAnswer: document.getElementById("q-correct").value
+                subject: subject,
+                title: subject + " Quiz",
+                questions: questions,
+                isMulti: true // For identification
             };
             
             try {
                 await addDoc(collection(db, "quizzes"), data);
-                showToast();
+                showToast("Quiz with " + questions.length + " questions saved!");
                 e.target.reset();
+                document.getElementById("questionsContainer").innerHTML = `
+                    <div class="question-entry" style="border: 1px solid #eee; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                        <div class="form-group"><label>Question 1</label><textarea class="q-text" required></textarea></div>
+                    </div>
+                `; // Reset to 1 question
             } catch (err) { alert("Error: " + err.message); }
         };
 
@@ -434,7 +483,7 @@
                     const div = document.createElement("div");
                     div.className = "data-item";
                     div.innerHTML = `
-                        <span><strong>[${item.subject}]</strong> ${item.title || item.question.substring(0, 30)}...</span>
+                        <span><strong>[${item.subject}]</strong> ${item.title || (item.question ? item.question.substring(0, 30) : 'Multi-Question Block')}</span>
                         <span class="delete-btn" onclick="deleteItem('${colName}', '${docSnap.id}')">✕ Delete</span>
                     `;
                     list.appendChild(div);
