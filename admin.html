@@ -224,7 +224,7 @@
             <!-- SECTION: ADD QUIZ -->
             <div id="add-quiz" class="admin-section">
                 <div class="section-card">
-                    <h2>Add New Quiz</h2>
+                    <h2>Add New Quiz <span id="edit-label-quiz" class="hidden" style="font-size: 14px; color: var(--primary); font-weight: normal; margin-left: 10px;">— Editing Mode</span></h2>
                     <form id="quizForm">
                         <div class="form-group">
                             <label>Subject</label>
@@ -263,7 +263,7 @@
             <!-- SECTION: ADD FLASHCARD -->
             <div id="add-flash" class="admin-section hidden">
                 <div class="section-card">
-                    <h2>Add New Flashcard</h2>
+                    <h2>Add New Flashcard <span id="edit-label-flash" class="hidden" style="font-size: 14px; color: var(--primary); font-weight: normal; margin-left: 10px;">— Editing Mode</span></h2>
                     <form id="flashForm">
                         <div class="form-group">
                             <label>Subject</label>
@@ -285,7 +285,7 @@
             <!-- SECTION: ADD RESOURCE -->
             <div id="add-resource" class="admin-section hidden">
                 <div class="section-card">
-                    <h2>Add New Resource</h2>
+                    <h2>Add New Resource <span id="edit-label-res" class="hidden" style="font-size: 14px; color: var(--primary); font-weight: normal; margin-left: 10px;">— Editing Mode</span></h2>
                     <form id="resForm">
                         <div class="form-group">
                             <label>Subject</label>
@@ -334,7 +334,11 @@
     <!-- FIREBASE SDK -->
     <script type="module">
         import { db } from './firebase.js';
-        import { collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        let isEditing = false;
+        let editingId = null;
+        let editingType = null;
 
         // AUTH CHECK
         window.checkAuth = function() {
@@ -370,30 +374,32 @@
         }
 
         // ADD QUESTION FIELD
-        document.getElementById("addQuestionBtn").onclick = () => {
+        function addQuestionField(data = null, count = null) {
             const container = document.getElementById("questionsContainer");
-            const qCount = container.children.length + 1;
+            const qCount = count || (container.children.length + 1);
             const qDiv = document.createElement("div");
             qDiv.className = "question-entry";
             qDiv.style = "border: 1px solid #eee; padding: 20px; border-radius: 12px; margin-bottom: 20px;";
             qDiv.innerHTML = `
                 <div class="form-group">
                     <label>Question ${qCount}</label>
-                    <textarea class="q-text" placeholder="Enter the question..." required></textarea>
+                    <textarea class="q-text" placeholder="Enter the question..." required>${data ? data.question : ""}</textarea>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div class="form-group"><label>Opt 1</label><input type="text" class="q-opt1" required></div>
-                    <div class="form-group"><label>Opt 2</label><input type="text" class="q-opt2" required></div>
-                    <div class="form-group"><label>Opt 3</label><input type="text" class="q-opt3" required></div>
-                    <div class="form-group"><label>Opt 4</label><input type="text" class="q-opt4" required></div>
+                    <div class="form-group"><label>Opt 1</label><input type="text" class="q-opt1" value="${data ? data.options[0] : ""}" required></div>
+                    <div class="form-group"><label>Opt 2</label><input type="text" class="q-opt2" value="${data ? data.options[1] : ""}" required></div>
+                    <div class="form-group"><label>Opt 3</label><input type="text" class="q-opt3" value="${data ? data.options[2] : ""}" required></div>
+                    <div class="form-group"><label>Opt 4</label><input type="text" class="q-opt4" value="${data ? data.options[3] : ""}" required></div>
                 </div>
                 <div class="form-group">
                     <label>Correct Answer</label>
-                    <input type="text" class="q-correct" required>
+                    <input type="text" class="q-correct" value="${data ? data.correctAnswer : ""}" required>
                 </div>
             `;
             container.appendChild(qDiv);
-        };
+        }
+
+        document.getElementById("addQuestionBtn").onclick = () => addQuestionField();
 
         // SAVE QUIZ
         document.getElementById("quizForm").onsubmit = async (e) => {
@@ -423,14 +429,22 @@
             };
             
             try {
-                await addDoc(collection(db, "quizzes"), data);
-                showToast("Quiz with " + questions.length + " questions saved!");
+                if (isEditing && editingType === 'quizzes') {
+                    await updateDoc(doc(db, "quizzes", editingId), data);
+                    showToast("Quiz Updated!");
+                } else {
+                    await addDoc(collection(db, "quizzes"), data);
+                    showToast("Quiz saved!");
+                }
+                
                 e.target.reset();
-                document.getElementById("questionsContainer").innerHTML = `
-                    <div class="question-entry" style="border: 1px solid #eee; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
-                        <div class="form-group"><label>Question 1</label><textarea class="q-text" required></textarea></div>
-                    </div>
-                `; // Reset to 1 question
+                document.getElementById("questionsContainer").innerHTML = "";
+                addQuestionField(); // Reset to 1 empty question
+                
+                if (isEditing) {
+                    fetchListView('quizzes');
+                    resetEditState();
+                }
             } catch (err) { alert("Error: " + err.message); }
         };
 
@@ -444,9 +458,19 @@
             };
             
             try {
-                await addDoc(collection(db, "flashcards"), data);
-                showToast();
+                if (isEditing && editingType === 'flashcards') {
+                    await updateDoc(doc(db, "flashcards", editingId), data);
+                    showToast("Flashcard Updated!");
+                } else {
+                    await addDoc(collection(db, "flashcards"), data);
+                    showToast("Flashcard Saved!");
+                }
+                
                 e.target.reset();
+                if (isEditing) {
+                    fetchListView('flashcards');
+                    resetEditState();
+                }
             } catch (err) { alert("Error: " + err.message); }
         };
 
@@ -464,9 +488,19 @@
             };
             
             try {
-                await addDoc(collection(db, "resources"), data);
-                showToast();
+                if (isEditing && editingType === 'resources') {
+                    await updateDoc(doc(db, "resources", editingId), data);
+                    showToast("Resource Updated!");
+                } else {
+                    await addDoc(collection(db, "resources"), data);
+                    showToast("Resource Saved!");
+                }
+                
                 e.target.reset();
+                if (isEditing) {
+                    fetchListView('resources');
+                    resetEditState();
+                }
             } catch (err) { alert("Error: " + err.message); }
         };
 
@@ -482,14 +516,96 @@
                     const item = docSnap.data();
                     const div = document.createElement("div");
                     div.className = "data-item";
+                    div.id = `item-${docSnap.id}`;
                     div.innerHTML = `
-                        <span><strong>[${item.subject}]</strong> ${item.title || (item.question ? item.question.substring(0, 30) : 'Multi-Question Block')}</span>
-                        <span class="delete-btn" onclick="deleteItem('${colName}', '${docSnap.id}')">✕ Delete</span>
+                        <span><strong>[${item.subject}]</strong> ${item.title || (item.question ? item.question.substring(0, 30) : (item.questions ? 'Quiz: ' + item.questions.length + ' questions' : 'No Title'))}</span>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <span class="edit-btn" style="color: #2D2D2D; cursor: pointer; font-weight: bold; background: #eee; padding: 5px 12px; border-radius: 8px;">Edit</span>
+                            <span class="delete-btn" onclick="deleteItem('${colName}', '${docSnap.id}')">✕ Delete</span>
+                        </div>
                     `;
+                    
+                    const editBtn = div.querySelector(".edit-btn");
+                    editBtn.onclick = () => startEdit(colName, docSnap.id, item);
+                    
                     list.appendChild(div);
                 });
-            } catch (err) { list.innerHTML = "Error loading data."; }
+            } catch (err) { 
+                console.error(err);
+                list.innerHTML = "Error loading data."; 
+            }
         };
+
+        window.startEdit = (colName, id, itemData) => {
+            resetEditState(); // Clean up any previous edit UI
+            
+            isEditing = true;
+            editingId = id;
+            editingType = colName;
+
+            let targetTab = '';
+            if (colName === 'quizzes') targetTab = 'add-quiz';
+            else if (colName === 'flashcards') targetTab = 'add-flash';
+            else if (colName === 'resources') targetTab = 'add-resource';
+
+            // Navigate to tab
+            const tabBtn = document.querySelector(`.nav-btn[data-target="${targetTab}"]`);
+            if (tabBtn) tabBtn.click();
+
+            // Populate form
+            if (colName === 'quizzes') {
+                document.getElementById("edit-label-quiz").classList.remove("hidden");
+                document.getElementById("q-subject").value = itemData.subject;
+                const container = document.getElementById("questionsContainer");
+                container.innerHTML = "";
+                itemData.questions.forEach((q, index) => {
+                    addQuestionField(q, index + 1);
+                });
+                document.querySelector("#quizForm .btn-save").innerText = "Update Quiz Package";
+            } else if (colName === 'flashcards') {
+                document.getElementById("edit-label-flash").classList.remove("hidden");
+                document.getElementById("f-subject").value = itemData.subject;
+                document.getElementById("f-question").value = itemData.question;
+                document.getElementById("f-answer").value = itemData.answer;
+                document.querySelector("#flashForm .btn-save").innerText = "Update Flashcard";
+            } else if (colName === 'resources') {
+                document.getElementById("edit-label-res").classList.remove("hidden");
+                document.getElementById("r-subject").value = itemData.subject;
+                document.getElementById("r-title").value = itemData.title;
+                document.getElementById("r-type").value = itemData.type;
+                document.getElementById("r-url").value = itemData.url;
+                document.querySelector("#resForm .btn-save").innerText = "Update Resource";
+            }
+
+            // UI Polish
+            document.getElementById(targetTab).scrollIntoView({ behavior: 'smooth' });
+            const card = document.querySelector(`#${targetTab} .section-card`);
+            card.style.border = "2px solid var(--primary)";
+            setTimeout(() => card.style.border = "none", 3000);
+            
+            // Highlight in list if still visible
+            const listItem = document.getElementById(`item-${id}`);
+            if(listItem) listItem.style.background = "#fff0f0";
+        };
+
+        function resetEditState() {
+            isEditing = false;
+            editingId = null;
+            editingType = null;
+            
+            // Hide labels
+            document.getElementById("edit-label-quiz").classList.add("hidden");
+            document.getElementById("edit-label-flash").classList.add("hidden");
+            document.getElementById("edit-label-res").classList.add("hidden");
+            
+            // Reset buttons
+            document.querySelector("#quizForm .btn-save").innerText = "Save Quiz Package";
+            document.querySelector("#flashForm .btn-save").innerText = "Save Flashcard";
+            document.querySelector("#resForm .btn-save").innerText = "Save Resource";
+            
+            // Clear highlights
+            document.querySelectorAll(".data-item").forEach(item => item.style.background = "transparent");
+        }
 
         window.deleteItem = async (colName, id) => {
             if(!confirm("Are you sure?")) return;
@@ -497,6 +613,7 @@
                 await deleteDoc(doc(db, colName, id));
                 showToast("Deleted Successfully!");
                 fetchListView(colName);
+                if (isEditing && editingId === id) resetEditState();
             } catch (err) { alert("Error: " + err.message); }
         };
 
