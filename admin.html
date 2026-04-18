@@ -269,15 +269,24 @@
                             <label>Subject</label>
                             <input type="text" id="f-subject" placeholder="e.g. Physics" required>
                         </div>
-                        <div class="form-group">
-                            <label>Front (Question)</label>
-                            <input type="text" id="f-question" required>
+                        <div id="flashcardsContainer">
+                            <div class="flashcard-entry" style="border: 1px solid #eee; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                                <div class="form-group">
+                                    <label>Front (Question)</label>
+                                    <input type="text" class="f-question" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Back (Answer)</label>
+                                    <textarea class="f-answer" required></textarea>
+                                </div>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>Back (Answer)</label>
-                            <textarea id="f-answer" required></textarea>
-                        </div>
-                        <button type="submit" class="btn-save">Save Flashcard</button>
+
+                        <button type="button" id="addFlashBtn" style="background: #f1f5f9; color: #333; margin-bottom: 20px; padding: 12px; border-radius: 10px; font-weight: 600;" class="nav-btn">
+                            + Add Another Flashcard
+                        </button>
+
+                        <button type="submit" class="btn-save">Save Flashcards</button>
                     </form>
                 </div>
             </div>
@@ -401,6 +410,27 @@
 
         document.getElementById("addQuestionBtn").onclick = () => addQuestionField();
 
+        // ADD FLASHCARD FIELD
+        function addFlashcardField(data = null) {
+            const container = document.getElementById("flashcardsContainer");
+            const fDiv = document.createElement("div");
+            fDiv.className = "flashcard-entry";
+            fDiv.style = "border: 1px solid #eee; padding: 20px; border-radius: 12px; margin-bottom: 20px;";
+            fDiv.innerHTML = `
+                <div class="form-group">
+                    <label>Front (Question)</label>
+                    <input type="text" class="f-question" value="${data ? data.question : ""}" required>
+                </div>
+                <div class="form-group">
+                    <label>Back (Answer)</label>
+                    <textarea class="f-answer" required>${data ? data.answer : ""}</textarea>
+                </div>
+            `;
+            container.appendChild(fDiv);
+        }
+
+        document.getElementById("addFlashBtn").onclick = () => addFlashcardField();
+
         // SAVE QUIZ
         document.getElementById("quizForm").onsubmit = async (e) => {
             e.preventDefault();
@@ -448,25 +478,37 @@
             } catch (err) { alert("Error: " + err.message); }
         };
 
-        // SAVE FLASHCARD
+        // SAVE FLASHCARDS
         document.getElementById("flashForm").onsubmit = async (e) => {
             e.preventDefault();
-            const data = {
-                subject: document.getElementById("f-subject").value,
-                question: document.getElementById("f-question").value,
-                answer: document.getElementById("f-answer").value
-            };
+            const subject = document.getElementById("f-subject").value;
+            const fEntries = document.querySelectorAll(".flashcard-entry");
             
             try {
                 if (isEditing && editingType === 'flashcards') {
+                    const data = {
+                        subject: subject,
+                        question: fEntries[0].querySelector(".f-question").value,
+                        answer: fEntries[0].querySelector(".f-answer").value
+                    };
                     await updateDoc(doc(db, "flashcards", editingId), data);
                     showToast("Flashcard Updated!");
                 } else {
-                    await addDoc(collection(db, "flashcards"), data);
-                    showToast("Flashcard Saved!");
+                    for (const entry of fEntries) {
+                        const data = {
+                            subject: subject,
+                            question: entry.querySelector(".f-question").value,
+                            answer: entry.querySelector(".f-answer").value
+                        };
+                        await addDoc(collection(db, "flashcards"), data);
+                    }
+                    showToast(`Saved ${fEntries.length} Flashcards!`);
                 }
                 
                 e.target.reset();
+                document.getElementById("flashcardsContainer").innerHTML = "";
+                addFlashcardField(); // Reset to 1 empty flashcard
+                
                 if (isEditing) {
                     fetchListView('flashcards');
                     resetEditState();
@@ -565,9 +607,12 @@
             } else if (colName === 'flashcards') {
                 document.getElementById("edit-label-flash").classList.remove("hidden");
                 document.getElementById("f-subject").value = itemData.subject;
-                document.getElementById("f-question").value = itemData.question;
-                document.getElementById("f-answer").value = itemData.answer;
+                const container = document.getElementById("flashcardsContainer");
+                container.innerHTML = "";
+                addFlashcardField(itemData);
                 document.querySelector("#flashForm .btn-save").innerText = "Update Flashcard";
+                // Hide "Add another" button when editing single item
+                document.getElementById("addFlashBtn").classList.add("hidden");
             } else if (colName === 'resources') {
                 document.getElementById("edit-label-res").classList.remove("hidden");
                 document.getElementById("r-subject").value = itemData.subject;
@@ -602,6 +647,10 @@
             document.querySelector("#quizForm .btn-save").innerText = "Save Quiz Package";
             document.querySelector("#flashForm .btn-save").innerText = "Save Flashcard";
             document.querySelector("#resForm .btn-save").innerText = "Save Resource";
+            
+            // Re-show add buttons
+            document.getElementById("addFlashBtn").classList.remove("hidden");
+            document.getElementById("addQuestionBtn").classList.remove("hidden");
             
             // Clear highlights
             document.querySelectorAll(".data-item").forEach(item => item.style.background = "transparent");

@@ -379,12 +379,33 @@
         };
       });
 
+      function smoothScroll(element, amount, duration) {
+          const start = element.scrollLeft;
+          const startTime = performance.now();
+          
+          function animate(currentTime) {
+              const elapsed = currentTime - startTime;
+              const progress = Math.min(elapsed / duration, 1);
+              // Ease out cubic pattern for a faster but smooth flow
+              const ease = 1 - Math.pow(1 - progress, 3); 
+              element.scrollLeft = start + (amount * ease);
+              if (progress < 1) requestAnimationFrame(animate);
+          }
+          requestAnimationFrame(animate);
+      }
+
       document.querySelectorAll(".section-header").forEach(section => {
-        const container = section.nextElementSibling;
+        const wrapper = section.nextElementSibling;
+        const container = wrapper ? wrapper.querySelector(".horizontal-courses") : null;
         const leftBtn = section.querySelector(".left");
         const rightBtn = section.querySelector(".right");
-        if (rightBtn) rightBtn.onclick = () => container.scrollBy({ left: 300, behavior: "smooth" });
-        if (leftBtn) leftBtn.onclick = () => container.scrollBy({ left: -300, behavior: "smooth" });
+
+        if (container && rightBtn) {
+          rightBtn.onclick = () => smoothScroll(container, 500, 75);
+        }
+        if (container && leftBtn) {
+          leftBtn.onclick = () => smoothScroll(container, -500, 75);
+        }
       });
     });
   </script>

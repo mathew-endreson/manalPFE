@@ -84,6 +84,12 @@
       <p class="quiz-sub">Choose the correct answer</p>
     </div>
     <div class="answers-container" id="answersContainer"></div>
+    
+    <!-- Navigation Buttons -->
+    <div class="quiz-nav" style="display: flex; justify-content: space-between; margin-top: 40px; gap: 20px;">
+        <button class="btn-primary" id="prevBtn" style="background: #333; flex: 1; opacity: 0.5; cursor: not-allowed;" disabled>Previous</button>
+        <button class="btn-primary" id="nextBtn" style="flex: 1; opacity: 0.5; cursor: not-allowed;" disabled>Next</button>
+    </div>
   </div>
 </div>
 
@@ -95,6 +101,7 @@
     let quizData = [];
     let currentQuestion = 0;
     let score = 0;
+    let userAnswers = []; // Store user selection for each question
     const selectedSubject = localStorage.getItem("selectedQuizSubject") || "Math";
 
     // ELEMENTS
@@ -156,15 +163,64 @@
             const div = document.createElement("div");
             div.className = "answer";
             div.innerHTML = `<h5>${opt}</h5>`;
-            div.onclick = () => selectAnswer(opt, div);
+            
+            // If already answered, show the state
+            if (userAnswers[currentQuestion]) {
+                if (opt === q.correctAnswer) div.classList.add("correct");
+                if (opt === userAnswers[currentQuestion].selected && opt !== q.correctAnswer) div.classList.add("wrong");
+                div.style.pointerEvents = "none";
+            } else {
+                div.onclick = () => selectAnswer(opt, div);
+            }
+            
             answersContainer.appendChild(div);
         });
 
         const progressPercent = ((currentQuestion + 1) / quizData.length) * 100;
         document.getElementById("progressFill").style.width = `${progressPercent}%`;
+
+        // Update Nav Buttons
+        const prevBtn = document.getElementById("prevBtn");
+        const nextBtn = document.getElementById("nextBtn");
+
+        prevBtn.disabled = currentQuestion === 0;
+        prevBtn.style.opacity = prevBtn.disabled ? "0.5" : "1";
+        prevBtn.style.cursor = prevBtn.disabled ? "not-allowed" : "pointer";
+
+        nextBtn.disabled = !userAnswers[currentQuestion] || currentQuestion === quizData.length - 1;
+        nextBtn.style.opacity = nextBtn.disabled ? "0.5" : "1";
+        nextBtn.style.cursor = nextBtn.disabled ? "not-allowed" : "pointer";
+
+        // If it's the last question and answered, allow finishing
+        if (userAnswers[currentQuestion] && currentQuestion === quizData.length - 1) {
+            nextBtn.innerText = "Finish";
+            nextBtn.disabled = false;
+            nextBtn.style.opacity = "1";
+            nextBtn.style.cursor = "pointer";
+        } else {
+            nextBtn.innerText = "Next";
+        }
     }
 
+    document.getElementById("prevBtn").onclick = () => {
+        if (currentQuestion > 0) {
+            currentQuestion--;
+            loadQuestion();
+        }
+    };
+
+    document.getElementById("nextBtn").onclick = () => {
+        if (currentQuestion === quizData.length - 1 && userAnswers[currentQuestion]) {
+            showResults();
+        } else if (currentQuestion < quizData.length - 1) {
+            currentQuestion++;
+            loadQuestion();
+        }
+    };
+
     function selectAnswer(selected, element) {
+        if (userAnswers[currentQuestion]) return;
+
         const q = quizData[currentQuestion];
         const answers = document.querySelectorAll(".answer");
         
@@ -172,6 +228,7 @@
         answers.forEach(a => a.style.pointerEvents = "none");
 
         const isCorrect = selected === q.correctAnswer;
+        userAnswers[currentQuestion] = { selected, isCorrect };
         
         if (isCorrect) {
             element.classList.add("correct");
@@ -186,9 +243,21 @@
             });
         }
 
+        // Enable "Next" button immediately
+        const nextBtn = document.getElementById("nextBtn");
+        nextBtn.disabled = false;
+        nextBtn.style.opacity = "1";
+        nextBtn.style.cursor = "pointer";
+        if (currentQuestion === quizData.length - 1) nextBtn.innerText = "Finish";
+
         setTimeout(() => {
-            currentQuestion++;
-            loadQuestion();
+            if (currentQuestion < quizData.length - 1) {
+                currentQuestion++;
+                loadQuestion();
+            } else if (currentQuestion === quizData.length - 1) {
+                // Stay on last question to allow review or manual finish
+                loadQuestion();
+            }
         }, 1500);
     }
 
