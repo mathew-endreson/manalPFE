@@ -5,7 +5,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EZ Bac - Home Dashboard | Your Learning Hub</title>
-  <meta name="description" content="Access your personalized study dashboard. Track your progress, manage to-dos, and use the Pomodoro timer for effective Bac preparation.">
+  <meta name="description"
+    content="Access your personalized study dashboard. Track your progress, manage to-dos, and use the Pomodoro timer for effective Bac preparation.">
   <meta name="author" content="EZ Bac">
 
   <!-- Open Graph -->
@@ -50,6 +51,11 @@
           <img src="assets/icons/calculator.svg">
           <span>Calculator</span>
         </a>
+
+        <a href="games.html" class="nav-item">
+          <img src="assets/icons/games.svg">
+          <span>Games</span>
+        </a>
       </div>
 
       <!-- RIGHT SIDE (SUPPORT ICON) -->
@@ -80,24 +86,16 @@
           </button>
           <button class="filter-btn" data-filter="test">
             <img src="assets/icons/tests.svg" alt="Tests Icon">
-            <span>Tests</span>
+            <span>Quiz</span>
           </button>
-          <button class="filter-btn" data-filter="lesson">
-            <img src="assets/icons/lessons.svg" alt="Lessons Icon">
-            <span>Lessons</span>
-          </button>
+
+
           <button class="filter-btn" data-filter="flashcard">
             <img src="assets/icons/flashcards.svg" alt="Flashcards Icon">
             <span>Flashcards</span>
           </button>
-          <button class="filter-btn" data-filter="book">
-            <img src="assets/icons/book.svg" alt="Books Icon">
-            <span>Books</span>
-          </button>
-          <button class="filter-btn" data-filter="teacher">
-            <img src="assets/icons/resume.svg" alt="Teachers Icon">
-            <span>Teachers</span>
-          </button>
+
+
         </div>
       </div>
 
@@ -147,7 +145,7 @@
           </button>
         </div>
       </div>
-      
+
       <div class="right-card todo-card">
         <div class="todo-header">
           <h4>To-Do list</h4>
@@ -182,21 +180,21 @@
 
     // ================= DYNAMIC CONTENT FETCHING =================
     async function loadDashboardContent() {
-        try {
-            // Fetch Flashcards
-            const flashSnap = await getDocs(collection(db, "flashcards"));
-            const flashcards = [];
-            flashSnap.forEach(doc => flashcards.push({ id: doc.id, ...doc.data() }));
-            renderCards("flashcardsContainer", flashcards, "flashcard");
+      try {
+        // Fetch Flashcards
+        const flashSnap = await getDocs(collection(db, "flashcards"));
+        const flashcards = [];
+        flashSnap.forEach(doc => flashcards.push({ id: doc.id, ...doc.data() }));
+        renderCards("flashcardsContainer", flashcards, "flashcard");
 
-            // Fetch Resources (as resumes)
-            const resSnap = await getDocs(collection(db, "resources"));
-            const resources = [];
-            resSnap.forEach(doc => resources.push({ id: doc.id, ...doc.data() }));
-            renderCards("resumesContainer", resources, "resource");
-        } catch (err) {
-            console.error("Dashboard Load Error:", err);
-        }
+        // Fetch Resources (as resumes)
+        const resSnap = await getDocs(collection(db, "resources"));
+        const resources = [];
+        resSnap.forEach(doc => resources.push({ id: doc.id, ...doc.data() }));
+        renderCards("resumesContainer", resources, "resource");
+      } catch (err) {
+        console.error("Dashboard Load Error:", err);
+      }
     }
 
     function renderCards(containerId, data, category) {
@@ -256,12 +254,12 @@
     function renderTodoList() {
       const list = document.getElementById("todo-list");
       if (!list) return;
-      
+
       list.innerHTML = "";
       todos.forEach((todo, index) => {
         const item = document.createElement("div");
         item.className = `todo-item ${todo.completed ? 'completed' : ''}`;
-        
+
         item.innerHTML = `
           <div class="checkbox" onclick="window.toggleTodo(${index})">${todo.completed ? '✓' : ''}</div>
           <div class="todo-content">
@@ -274,12 +272,12 @@
       });
     }
 
-    window.toggleTodo = function(index) {
+    window.toggleTodo = function (index) {
       todos[index].completed = !todos[index].completed;
       saveAndRenderTodos();
     };
 
-    window.deleteTodo = function(index) {
+    window.deleteTodo = function (index) {
       todos.splice(index, 1);
       saveAndRenderTodos();
     };
@@ -314,55 +312,55 @@
     let homeTimerInterval = null;
 
     function updateHomeTimer() {
-        const savedEnd = localStorage.getItem("ezbac_timer_end");
-        const savedRunning = localStorage.getItem("ezbac_timer_running") === "true";
-        const savedBase = localStorage.getItem("ezbac_timer_base_seconds") || (45 * 60);
+      const savedEnd = localStorage.getItem("ezbac_timer_end");
+      const savedRunning = localStorage.getItem("ezbac_timer_running") === "true";
+      const savedBase = localStorage.getItem("ezbac_timer_base_seconds") || (45 * 60);
 
-        if (savedEnd && savedRunning) {
-            const remaining = Math.round((parseInt(savedEnd) - Date.now()) / 1000);
-            if (remaining > 0) {
-                renderHomeTime(remaining);
-                if (!homeTimerInterval) homeTimerInterval = setInterval(updateHomeTimer, 1000);
-            } else {
-                renderHomeTime(savedBase);
-                clearInterval(homeTimerInterval);
-                homeTimerInterval = null;
-            }
+      if (savedEnd && savedRunning) {
+        const remaining = Math.round((parseInt(savedEnd) - Date.now()) / 1000);
+        if (remaining > 0) {
+          renderHomeTime(remaining);
+          if (!homeTimerInterval) homeTimerInterval = setInterval(updateHomeTimer, 1000);
         } else {
-            renderHomeTime(savedBase);
-            clearInterval(homeTimerInterval);
-            homeTimerInterval = null;
+          renderHomeTime(savedBase);
+          clearInterval(homeTimerInterval);
+          homeTimerInterval = null;
         }
+      } else {
+        renderHomeTime(savedBase);
+        clearInterval(homeTimerInterval);
+        homeTimerInterval = null;
+      }
     }
 
     function renderHomeTime(seconds) {
-        if (!pomodoroDisplay) return;
-        const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, "0");
-        const s = String(seconds % 60).padStart(2, "0");
-        pomodoroDisplay.innerText = `${m}:${s}`;
-        
-        const playBtnIco = document.querySelector(".pomodoro-card .play-btn img");
-        const savedRunning = localStorage.getItem("ezbac_timer_running") === "true";
-        if(playBtnIco) playBtnIco.src = savedRunning ? "assets/icons/pause.svg" : "assets/icons/play.svg";
+      if (!pomodoroDisplay) return;
+      const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, "0");
+      const s = String(seconds % 60).padStart(2, "0");
+      pomodoroDisplay.innerText = `${m}:${s}`;
+
+      const playBtnIco = document.querySelector(".pomodoro-card .play-btn img");
+      const savedRunning = localStorage.getItem("ezbac_timer_running") === "true";
+      if (playBtnIco) playBtnIco.src = savedRunning ? "assets/icons/pause.svg" : "assets/icons/play.svg";
     }
 
     const homePlayBtn = document.querySelector(".pomodoro-card .play-btn");
-    if(homePlayBtn) {
-        homePlayBtn.onclick = () => {
-            const isRunning = localStorage.getItem("ezbac_timer_running") === "true";
-            if (isRunning) {
-                localStorage.setItem("ezbac_timer_running", "false");
-                const savedEnd = localStorage.getItem("ezbac_timer_end");
-                const remaining = Math.round((parseInt(savedEnd) - Date.now()) / 1000);
-                localStorage.setItem("ezbac_timer_base_seconds", remaining > 0 ? remaining : (45*60));
-                localStorage.removeItem("ezbac_timer_end");
-            } else {
-                const base = parseInt(localStorage.getItem("ezbac_timer_base_seconds")) || (45*60);
-                localStorage.setItem("ezbac_timer_end", Date.now() + (base * 1000));
-                localStorage.setItem("ezbac_timer_running", "true");
-            }
-            updateHomeTimer();
-        };
+    if (homePlayBtn) {
+      homePlayBtn.onclick = () => {
+        const isRunning = localStorage.getItem("ezbac_timer_running") === "true";
+        if (isRunning) {
+          localStorage.setItem("ezbac_timer_running", "false");
+          const savedEnd = localStorage.getItem("ezbac_timer_end");
+          const remaining = Math.round((parseInt(savedEnd) - Date.now()) / 1000);
+          localStorage.setItem("ezbac_timer_base_seconds", remaining > 0 ? remaining : (45 * 60));
+          localStorage.removeItem("ezbac_timer_end");
+        } else {
+          const base = parseInt(localStorage.getItem("ezbac_timer_base_seconds")) || (45 * 60);
+          localStorage.setItem("ezbac_timer_end", Date.now() + (base * 1000));
+          localStorage.setItem("ezbac_timer_running", "true");
+        }
+        updateHomeTimer();
+      };
     }
 
     // ================= INITIALIZE =================
@@ -374,24 +372,29 @@
 
       document.querySelectorAll(".filter-btn").forEach(btn => {
         btn.onclick = () => {
-          localStorage.setItem("courseFilter", btn.getAttribute("data-filter"));
-          window.location.href = 'courses.html';
+          const filter = btn.getAttribute("data-filter");
+          localStorage.setItem("courseFilter", filter);
+          if (filter === "resume") {
+            window.location.href = 'library.html';
+          } else {
+            window.location.href = 'games.html';
+          }
         };
       });
 
       function smoothScroll(element, amount, duration) {
-          const start = element.scrollLeft;
-          const startTime = performance.now();
-          
-          function animate(currentTime) {
-              const elapsed = currentTime - startTime;
-              const progress = Math.min(elapsed / duration, 1);
-              // Ease out cubic pattern for a faster but smooth flow
-              const ease = 1 - Math.pow(1 - progress, 3); 
-              element.scrollLeft = start + (amount * ease);
-              if (progress < 1) requestAnimationFrame(animate);
-          }
-          requestAnimationFrame(animate);
+        const start = element.scrollLeft;
+        const startTime = performance.now();
+
+        function animate(currentTime) {
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          // Ease out cubic pattern for a faster but smooth flow
+          const ease = 1 - Math.pow(1 - progress, 3);
+          element.scrollLeft = start + (amount * ease);
+          if (progress < 1) requestAnimationFrame(animate);
+        }
+        requestAnimationFrame(animate);
       }
 
       document.querySelectorAll(".section-header").forEach(section => {

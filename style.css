@@ -2810,8 +2810,8 @@ body {
     }
 
     .dashboard-right {
-        position: static; /* No longer sticky on mobile */
-        order: -1; /* Move widgets like Pomodoro above content for quick access */
+        position: static;
+        order: -1;
         margin-bottom: 20px;
     }
 
@@ -2827,10 +2827,111 @@ body {
     }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE BOTTOM TAB BAR — Phone-first navigation
+   ═══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
-    /* NAVBAR */
+
+    /* ——— DASHBOARD NAVBAR → BOTTOM TAB BAR ——— */
+    .dashboard-navbar {
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        border-bottom: none;
+        border-top: 1px solid #E2E8F0;
+        z-index: 1100;
+    }
+
+    .dashboard-navbar .dashboard-container {
+        padding: 6px 4px;
+        border-radius: 0;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+    }
+
+    /* Hide the logo and support icon in bottom bar */
+    .dashboard-navbar .logo,
+    .dashboard-navbar .nav-right {
+        display: none;
+    }
+
+    /* Tab bar layout */
+    .dashboard-links {
+        width: 100%;
+        display: flex;
+        justify-content: space-around;
+        gap: 0;
+        overflow-x: visible;
+        padding-bottom: 0;
+    }
+
+    /* Individual tab items */
+    .nav-item {
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        font-size: 10px;
+        padding: 4px 0;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .nav-item span {
+        display: block !important;
+        font-size: 10px;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+
+    .nav-item img {
+        width: 20px;
+        height: 20px;
+    }
+
+    /* Remove underline effect in bottom bar */
+    .nav-item::after {
+        display: none;
+    }
+
+    .nav-item.active {
+        font-size: 10px;
+        color: #BB181D;
+    }
+
+    /* ——— GLOBAL SPACING FIXES ——— */
+    /* Push content above the bottom tab bar */
+    body {
+        padding-bottom: 70px;
+    }
+
+    /* Reduce top margins since navbar is at bottom */
+    .dashboard-content {
+        margin-top: 20px;
+        padding: 16px 14px;
+    }
+
+    .courses-header {
+        margin-top: 20px;
+    }
+
+    .quiz-page {
+        padding-top: 20px;
+    }
+
+    .flash-page {
+        padding-top: 20px;
+    }
+
+    .pomodoro-container {
+        margin-top: 20px;
+        padding: 14px;
+    }
+
+    /* ——— LANDING PAGE NAVBAR (index.html) ——— */
     .nav-container {
-        padding: 10px 20px;
+        padding: 10px 16px;
         height: auto;
     }
 
@@ -2839,24 +2940,24 @@ body {
     }
 
     .logo img {
-        height: 60px;
+        height: 55px;
     }
 
-    /* HERO SECTION */
+    /* ——— HERO SECTION ——— */
     .hero-container {
         flex-direction: column;
         text-align: center;
-        margin-top: 40px;
+        margin-top: 30px;
     }
 
     .hero-left h1 {
-        font-size: 2.2rem;
+        font-size: 2rem;
         line-height: 1.2;
         max-width: 100%;
     }
 
     .hero-buttons {
-        margin-top: 40px;
+        margin-top: 30px;
         flex-direction: column;
         align-items: stretch;
     }
@@ -2864,51 +2965,276 @@ body {
     .btn-primary {
         width: 100%;
         text-align: center;
+        padding: 14px 20px;
+        font-size: 1rem;
     }
 
     .btn-play {
         justify-content: center;
     }
 
-    /* SECTIONS */
+    /* ——— GENERAL SECTIONS ——— */
     .about, .teachers, .faq, .footer {
-        margin-top: 80px;
+        margin-top: 60px;
     }
 
     .about-header h1, .teachers-left h2, .faq-left h2 {
-        font-size: 2rem;
+        font-size: 1.8rem;
     }
 
-    /* SERVICES GRID */
     .services-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 10px;
+        margin-top: 30px;
+    }
+
+    /* ——— HOME DASHBOARD ——— */
+    .welcome-section h1 {
+        font-size: 1.8rem;
+    }
+
+    .welcome-section p {
+        font-size: 0.9rem;
+    }
+
+    .section-header h3 {
+        font-size: 1.3rem;
+    }
+
+    .feilds-buttons {
+        gap: 6px;
+        margin-top: 20px;
+    }
+
+    .filter-btn {
+        padding: 0 14px;
+        height: 38px;
+        font-size: 0.85rem;
+    }
+
+    /* Pomodoro widget on home right sidebar */
+    .pomodoro-timer {
         margin-top: 40px;
     }
 
-    /* CARDS */
+    .pomodoro-actions {
+        margin-top: 30px;
+    }
+
+    /* ——— COURSES / LIBRARY / GAMES ——— */
     .courses-container {
         grid-template-columns: 1fr;
+        padding: 0 14px;
     }
     
     .course-card {
         min-width: 100%;
     }
 
-    /* QUIZ PAGE */
+    .course-search-bar input {
+        width: 100%;
+        max-width: 100%;
+        height: 48px;
+        font-size: 0.9rem;
+    }
+
+    .header-illustration {
+        max-width: 80%;
+        height: auto;
+    }
+
+    .filter-buttons {
+        padding: 0 14px;
+    }
+
+    /* ——— QUIZ PAGE ——— */
+    .quiz-header, .flash-header {
+        padding: 0 16px;
+    }
+
+    .quiz-container {
+        flex-direction: column;
+        padding: 0 16px;
+    }
+
+    .quiz-info, .flash-info {
+        width: 100%;
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+        margin-bottom: 12px;
+    }
+
+    .quiz-title, .flash-title {
+        margin-bottom: 8px;
+    }
+
+    .quiz-content-box {
+        height: auto;
+        min-height: 300px;
+        padding: 40px 24px;
+        border-radius: 30px;
+    }
+
+    .quiz-active {
+        padding: 20px 16px;
+        min-height: auto;
+    }
+
     .quiz-question h4 {
-        font-size: 1.4rem;
+        font-size: 1.2rem;
+        margin-bottom: 16px;
+    }
+
+    .quiz-sub {
+        margin-bottom: 16px;
+        font-size: 0.9rem;
+    }
+
+    .answer {
+        height: auto;
+        min-height: 56px;
+        padding: 14px 20px;
+        border-radius: 20px;
+    }
+
+    .answer h5 {
+        font-size: 0.95rem;
+        line-height: 1.4;
+    }
+
+    .quiz-nav {
+        flex-direction: row !important;
+        gap: 10px !important;
+        margin-top: 24px !important;
+    }
+
+    .quiz-nav .btn-primary {
+        padding: 12px 16px !important;
+        font-size: 0.9rem;
+        border-radius: 16px;
+    }
+
+    /* Quiz result screen */
+    .test-result h1 {
+        font-size: 3rem !important;
+    }
+
+    .test-result h2 {
+        font-size: 1.3rem;
+    }
+
+    /* ——— FLASHCARD PAGE ——— */
+    .flash-container {
+        flex-direction: column;
+        padding: 0 16px;
+    }
+
+    .flash-content-box {
+        padding: 24px 16px;
+        border-radius: 30px;
+    }
+
+    .flash-card-outer {
+        height: 220px;
+        margin-top: 20px;
+    }
+
+    .flash-front, .flash-back {
+        padding: 24px;
+        border-radius: 20px;
+    }
+
+    .flash-front h2 {
+        font-size: 1.2rem;
+    }
+
+    .flash-back h3 {
+        font-size: 1.1rem;
+    }
+
+    .nav-controls {
+        margin-top: 24px;
+    }
+
+    .nav-btn {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+    }
+
+    /* ——— POMODORO PAGE ——— */
+    .timer-box {
+        padding: 20px;
+        border-radius: 24px;
+    }
+
+    .timer-display {
+        font-size: 56px;
+    }
+
+    .timer-modes {
+        margin-top: 40px;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .mode-btn {
+        padding: 0 20px;
+        font-size: 0.8rem;
+        height: 34px;
+    }
+
+    .timer-controls {
+        margin-top: 20px;
+    }
+
+    /* Pomodoro todo sidebar */
+    .custom-timers {
+        border-radius: 16px;
+        padding: 14px;
+    }
+
+    /* ——— CALCULATOR PAGE ——— */
+    .calc-main-container {
+        flex-direction: column;
+        padding: 0;
+    }
+
+    .card, .side {
+        border-radius: 20px;
+        padding: 20px;
+    }
+
+    .card h1 {
+        font-size: 1.5rem;
+    }
+
+    .result {
+        font-size: 40px !important;
+    }
+
+    .subject {
+        padding: 10px 14px;
+        border-radius: 10px;
+    }
+
+    .subject input {
+        width: 65px;
+        padding: 6px;
     }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   EXTRA SMALL PHONES (≤ 480px)
+   ═══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 480px) {
-    /* EXTREME SMALL PHONES */
     .about-cards {
         grid-template-columns: 1fr;
     }
 
     .search-box h2 {
-        font-size: 1.6rem;
+        font-size: 1.4rem;
     }
 
     .field {
@@ -2917,24 +3243,93 @@ body {
     }
 
     .tag {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
     }
 
     .card-title {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
     }
 
+    /* Bottom tab text even smaller */
     .nav-item span {
-        display: none;
-    }
-    
-    .dashboard-links {
-        justify-content: space-around;
-        gap: 10px;
+        font-size: 9px !important;
     }
 
-    .dashboard-navbar .dashboard-container {
-        padding: 10px;
+    .nav-item img {
+        width: 18px;
+        height: 18px;
+    }
+
+    /* Dashboard spacing */
+    .dashboard-content {
+        padding: 12px 10px;
+    }
+
+    .welcome-section h1 {
+        font-size: 1.5rem;
+    }
+
+    /* Quiz */
+    .quiz-active {
+        padding: 16px 12px;
+    }
+
+    .answer {
+        padding: 12px 16px;
+        min-height: 48px;
+        border-radius: 16px;
+    }
+
+    /* Pomodoro */
+    .timer-display {
+        font-size: 44px;
+    }
+
+    .timer-modes {
+        margin-top: 30px;
+    }
+
+    .mode-btn {
+        padding: 0 14px;
+        font-size: 0.75rem;
+    }
+
+    /* Flashcard */
+    .flash-card-outer {
+        height: 180px;
+    }
+
+    .flash-front h2 {
+        font-size: 1rem;
+    }
+
+    .flash-back h3 {
+        font-size: 0.95rem;
+    }
+
+    /* Calculator */
+    .result {
+        font-size: 32px !important;
+    }
+
+    .calc-btn {
+        font-size: 0.95rem;
+        padding: 14px;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   iOS SAFE AREA — Bottom tab bar respects notch/home indicator
+   ═══════════════════════════════════════════════════════════════════════════ */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    @media (max-width: 768px) {
+        .dashboard-navbar .dashboard-container {
+            padding-bottom: calc(6px + env(safe-area-inset-bottom));
+        }
+
+        body {
+            padding-bottom: calc(70px + env(safe-area-inset-bottom));
+        }
     }
 }
 
@@ -2960,7 +3355,7 @@ body {
     }
 
     .admin-sidebar > div {
-        display: none; /* Hide logo title in mobile sidebar to save space */
+        display: none;
     }
 
     .nav-btn, .nav-btn-exit {
