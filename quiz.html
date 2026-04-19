@@ -250,15 +250,7 @@
         nextBtn.style.cursor = "pointer";
         if (currentQuestion === quizData.length - 1) nextBtn.innerText = "Finish";
 
-        setTimeout(() => {
-            if (currentQuestion < quizData.length - 1) {
-                currentQuestion++;
-                loadQuestion();
-            } else if (currentQuestion === quizData.length - 1) {
-                // Stay on last question to allow review or manual finish
-                loadQuestion();
-            }
-        }, 1500);
+
     }
 
     function showResults() {
