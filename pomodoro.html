@@ -148,170 +148,63 @@ let currentTimer = {
 };
 
 // --- TODO STATE ---
-let todos = JSON.parse(localStorage.getItem("ezbac_todos")) || [];
+window.currentTodos = [];
 
-// ================= ELEMENTS =================
-const playBtn = document.querySelector(".play-btn");
-const playIcon = playBtn.querySelector("img");
-const resetBtn = document.querySelector(".reset-btn");
-const timerDisplay = document.getElementById("timerDisplay");
-const modeButtons = document.querySelectorAll(".mode-btn");
-
-const todoInput = document.getElementById("todoInput");
-const addTodoBtn = document.getElementById("addTodoBtn");
-const todoList = document.getElementById("todoList");
-
-// ================= PERSISTENCE HELPERS =================
-function syncTimerState() {
-    const savedEnd = localStorage.getItem("ezbac_timer_end");
-    const savedRunning = localStorage.getItem("ezbac_timer_running") === "true";
-    
-    if (savedEnd && savedRunning) {
-        const remaining = Math.round((parseInt(savedEnd) - Date.now()) / 1000);
-        if (remaining > 0) {
-            currentTime = remaining;
-            startTimerLogic();
-        } else {
-            clearTimerPersistence();
-        }
-    } else {
-        const savedBase = localStorage.getItem("ezbac_timer_base_seconds");
-        if(savedBase) currentTime = parseInt(savedBase);
-    }
-    updateDisplay();
-}
-
-function clearTimerPersistence() {
-    localStorage.removeItem("ezbac_timer_end");
-    localStorage.setItem("ezbac_timer_running", "false");
-}
-
-function formatTime(seconds) {
-  const h = String(Math.floor(seconds / 3600)).padStart(2, "0");
-  const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, "0");
-  const s = String(seconds % 60).padStart(2, "0");
-  return `${h}:${m}:${s}`;
-}
-
-function updateDisplay() {
-  timerDisplay.textContent = formatTime(currentTime);
-}
-
-// ================= ACTIONS =================
-function startTimerLogic() {
-    isRunning = true;
-    playIcon.src = "assets/icons/pause.svg";
-    
-    // Save state
-    const endTime = Date.now() + (currentTime * 1000);
-    localStorage.setItem("ezbac_timer_end", endTime);
-    localStorage.setItem("ezbac_timer_running", "true");
-
-    timerInterval = setInterval(() => {
-        const remaining = Math.round((parseInt(localStorage.getItem("ezbac_timer_end")) - Date.now()) / 1000);
-        if (remaining > 0) {
-            currentTime = remaining;
-            updateDisplay();
-        } else {
-            stopTimerLogic(true);
-        }
-    }, 1000);
-}
-
-function stopTimerLogic(finished = false) {
-    clearInterval(timerInterval);
-    isRunning = false;
-    playIcon.src = "assets/icons/play.svg";
-    localStorage.setItem("ezbac_timer_running", "false");
-    localStorage.setItem("ezbac_timer_base_seconds", finished ? currentTimer.duration : currentTime);
-    
-    if (finished) {
-        currentTime = currentTimer.duration;
-        updateDisplay();
-        alert("Time's up! Great job!");
-    }
-}
-
-playBtn.addEventListener("click", () => {
-    if (isRunning) stopTimerLogic();
-    else startTimerLogic();
-});
-
-resetBtn.addEventListener("click", () => {
-  stopTimerLogic();
-  currentTime = currentTimer.duration;
-  localStorage.setItem("ezbac_timer_base_seconds", currentTime);
-  updateDisplay();
-});
-
-modeButtons.forEach(button => {
-  button.addEventListener("click", () => {
-    stopTimerLogic();
-    
-    modeButtons.forEach(btn => btn.classList.remove("active"));
-    button.classList.add("active");
-
-    const parts = button.dataset.time.split(":").map(Number);
-    const seconds = parts[0]*3600 + parts[1]*60 + parts[2];
-
-    currentTimer = {
-      name: button.textContent,
-      duration: seconds
-    };
-
-    currentTime = seconds;
-    localStorage.setItem("ezbac_timer_base_seconds", currentTime);
-    document.querySelector(".timer-header h4").textContent = button.textContent;
-    updateDisplay();
-  });
-});
-
-// ================= TODO SYNC =================
-function saveAndRenderTodos() {
-  localStorage.setItem("ezbac_todos", JSON.stringify(todos));
-  renderTodos();
+async function fetchTodos() {
+    const res = await fetch('api/todos.php');
+    window.currentTodos = await res.json();
+    renderTodos();
 }
 
 function renderTodos() {
   if (!todoList) return;
   todoList.innerHTML = "";
-  todos.forEach((todo, index) => {
+  window.currentTodos.forEach((todo) => {
+    const isCompleted = parseInt(todo.is_completed);
     const item = document.createElement("div");
-    item.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+    item.className = `todo-item ${isCompleted ? 'completed' : ''}`;
     
-    // Using the same structure as home.html for consistency
     item.innerHTML = `
-      <div class="checkbox" onclick="toggleTodo(${index})">${todo.completed ? '✓' : ''}</div>
+      <div class="checkbox" onclick="window.toggleTodo(${todo.id}, ${isCompleted ? 0 : 1})">${isCompleted ? '✓' : ''}</div>
       <div class="todo-content">
-        <h3>${todo.text}</h3>
-        <p>${todo.date || 'Today'}</p>
+        <h3>${todo.task_text}</h3>
+        <p>${todo.task_date || 'Today'}</p>
       </div>
-      <div class="delete-btn" onclick="deleteTodo(${index})">✕</div>
+      <div class="delete-btn" onclick="window.deleteTodo(${todo.id})">✕</div>
     `;
     todoList.appendChild(item);
   });
 }
 
-window.toggleTodo = function(index) {
-  todos[index].completed = !todos[index].completed;
-  saveAndRenderTodos();
+window.toggleTodo = async function(id, newState) {
+    await fetch('api/todos.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, completed: newState })
+    });
+    fetchTodos();
 };
 
-window.deleteTodo = function(index) {
-  todos.splice(index, 1);
-  saveAndRenderTodos();
+window.deleteTodo = async function(id) {
+    await fetch(`api/todos.php?id=${id}`, { method: 'DELETE' });
+    fetchTodos();
 };
 
 if (addTodoBtn && todoInput) {
-  addTodoBtn.onclick = () => {
+  addTodoBtn.onclick = async () => {
     if (todoInput.value.trim()) {
-      todos.push({ 
+      const newTodo = { 
         text: todoInput.value.trim(), 
-        completed: false,
+        completed: 0,
         date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+      };
+      await fetch('api/todos.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newTodo)
       });
       todoInput.value = "";
-      saveAndRenderTodos();
+      fetchTodos();
     }
   };
   todoInput.onkeypress = (e) => {
@@ -320,7 +213,7 @@ if (addTodoBtn && todoInput) {
 }
 
 // Initial Render
-renderTodos();
+fetchTodos();
 syncTimerState();
 </script>
 </body>

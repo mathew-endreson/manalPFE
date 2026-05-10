@@ -67,23 +67,18 @@
     <p id="loadingMsg" style="text-align: center; width: 100%; padding: 50px;">Fetching resources...</p>
 </div>
 
-<script type="module">
-    import { db } from './firebase.js';
-    import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
+<script>
     const container = document.getElementById("resourceContainer");
     let allResources = [];
 
     async function loadResources() {
         try {
-            const querySnapshot = await getDocs(collection(db, "resources"));
-            allResources = [];
+            const res = await fetch('api/resources.php');
+            allResources = await res.json();
             
             const subjects = new Set();
-            querySnapshot.forEach(doc => {
-                const data = doc.data();
-                allResources.push(data);
-                subjects.add(data.subject);
+            allResources.forEach(item => {
+                subjects.add(item.subject);
             });
 
             renderFilters(subjects);
@@ -95,7 +90,7 @@
 
     function renderResources(data) {
         container.innerHTML = "";
-        if(data.length === 0) {
+        if(!data || data.length === 0) {
             container.innerHTML = `<p style="text-align:center; width:100%;">No resources found.</p>`;
             return;
         }
@@ -142,7 +137,6 @@
             filterContainer.appendChild(btn);
         });
         
-        // Fix for "All" button
         document.querySelector('.filter-btn[data-subject="all"]').onclick = (e) => {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
@@ -150,7 +144,6 @@
         };
     }
 
-    // SEARCH FILTER
     window.filterLib = () => {
         const query = document.getElementById("libSearch").value.toLowerCase();
         const filtered = allResources.filter(r => 

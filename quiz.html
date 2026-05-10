@@ -93,10 +93,7 @@
   </div>
 </div>
 
-<script type="module">
-    import { db } from './firebase.js';
-    import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
+<script>
     // STATE
     let quizData = [];
     let currentQuestion = 0;
@@ -112,26 +109,18 @@
     // INITIAL FETCH
     async function initQuiz() {
         try {
-            const q = query(collection(db, "quizzes"), where("subject", "==", selectedSubject));
-            const querySnapshot = await getDocs(q);
+            const res = await fetch(`api/quizzes.php?subject=${selectedSubject}`);
+            const data = await res.json();
             
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                if (data.questions && Array.isArray(data.questions)) {
-                    // It's a multi-question quiz doc
-                    quizData.push(...data.questions);
-                } else {
-                    // It's a legacy single-question quiz doc
-                    quizData.push(data);
-                }
-            });
+            if (data && data[0] && data[0].questions) {
+                quizData = data[0].questions;
+            }
 
             if (quizData.length === 0) {
                 loading.innerHTML = `<h2>No quizzes found for ${selectedSubject}</h2><a href="home.html">Go Back</a>`;
                 return;
             }
 
-            // Shuffle if desired, or keep as is
             loading.classList.add("hidden");
             cover.classList.remove("hidden");
             document.getElementById("displaySubject").innerText = `${selectedSubject} Quiz`;
@@ -164,7 +153,6 @@
             div.className = "answer";
             div.innerHTML = `<h5>${opt}</h5>`;
             
-            // If already answered, show the state
             if (userAnswers[currentQuestion]) {
                 if (opt === q.correctAnswer) div.classList.add("correct");
                 if (opt === userAnswers[currentQuestion].selected && opt !== q.correctAnswer) div.classList.add("wrong");
@@ -172,14 +160,12 @@
             } else {
                 div.onclick = () => selectAnswer(opt, div);
             }
-            
             answersContainer.appendChild(div);
         });
 
         const progressPercent = ((currentQuestion + 1) / quizData.length) * 100;
         document.getElementById("progressFill").style.width = `${progressPercent}%`;
 
-        // Update Nav Buttons
         const prevBtn = document.getElementById("prevBtn");
         const nextBtn = document.getElementById("nextBtn");
 
@@ -191,7 +177,6 @@
         nextBtn.style.opacity = nextBtn.disabled ? "0.5" : "1";
         nextBtn.style.cursor = nextBtn.disabled ? "not-allowed" : "pointer";
 
-        // If it's the last question and answered, allow finishing
         if (userAnswers[currentQuestion] && currentQuestion === quizData.length - 1) {
             nextBtn.innerText = "Finish";
             nextBtn.disabled = false;
@@ -223,8 +208,6 @@
 
         const q = quizData[currentQuestion];
         const answers = document.querySelectorAll(".answer");
-        
-        // Prevent double clicking
         answers.forEach(a => a.style.pointerEvents = "none");
 
         const isCorrect = selected === q.correctAnswer;
@@ -235,22 +218,16 @@
             score++;
         } else {
             element.classList.add("wrong");
-            // Find and show the correct one
             answers.forEach(a => {
-                if (a.innerText.trim() === q.correctAnswer) {
-                    a.classList.add("correct");
-                }
+                if (a.innerText.trim() === q.correctAnswer) a.classList.add("correct");
             });
         }
 
-        // Enable "Next" button immediately
         const nextBtn = document.getElementById("nextBtn");
         nextBtn.disabled = false;
         nextBtn.style.opacity = "1";
         nextBtn.style.cursor = "pointer";
         if (currentQuestion === quizData.length - 1) nextBtn.innerText = "Finish";
-
-
     }
 
     function showResults() {

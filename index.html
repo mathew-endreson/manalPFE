@@ -134,8 +134,12 @@
           <a href="games.html" data-key="courses">Courses</a>
           <a href="#faq" data-key="faq">FAQ</a>
         </div>
-      <!-- Right side for Mobile Toggle -->
+      <!-- Right side for Buttons & Mobile Toggle -->
       <div class="nav-right">
+        <div class="nav-auth-buttons">
+          <a href="auth.php" class="nav-login">Login</a>
+          <a href="auth.php" class="nav-signup">Sign Up</a>
+        </div>
         <div class="menu-toggle" id="mobile-menu">
           <span></span>
           <span></span>
@@ -156,7 +160,8 @@
       <a href="games.html" data-key="courses">Courses</a>
       <a href="#faq" data-key="faq">FAQ</a>
       <div class="mobile-nav-bottom">
-        <a href="home.html" class="btn-primary" data-key="get-started">Get Started</a>
+        <a href="auth.php" class="nav-login" style="display: block; margin-bottom: 10px; text-align: center;">Login</a>
+        <a href="auth.php" class="btn-primary" style="width: 100%; display: block; text-align: center;">Sign Up</a>
       </div>
     </div>
   </div>
@@ -611,6 +616,27 @@
     });
   </script>
 
+  <script>
+    // Check if user is logged in and update buttons
+    (async () => {
+      try {
+        const res = await fetch('api/user_auth.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'check' })
+        });
+        const data = await res.json();
+        if (data.success) {
+          const authContainers = document.querySelectorAll('.nav-auth-buttons, .mobile-nav-bottom');
+          authContainers.forEach(container => {
+            container.innerHTML = `
+              <a href="home.html" class="nav-signup">Go to Dashboard</a>
+            `;
+          });
+        }
+      } catch (e) {}
+    })();
+  </script>
 
 </body>
 

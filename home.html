@@ -16,6 +16,7 @@
 
   <link rel="icon" type="image/png" href="ezbac-icon.png">
   <link rel="stylesheet" href="style.css">
+  <script src="auth-check.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -58,9 +59,10 @@
         </a>
       </div>
 
-      <!-- RIGHT SIDE (SUPPORT ICON) -->
-      <div class="nav-right">
-        <img src="assets/icons/support.svg" class="support-icon">
+      <!-- RIGHT SIDE (USER & LOGOUT) -->
+      <div class="nav-right" style="display: flex; align-items: center; gap: 15px;">
+        <span class="user-name" style="font-weight: 600; color: #4a5568; font-size: 14px;"></span>
+        <button onclick="window.logout()" style="background: #AB1017; color: white; border: none; padding: 8px 16px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.3s;">Logout</button>
       </div>
 
     </div>
@@ -160,37 +162,30 @@
 
   </div>
 
-  <script type="module">
-    import { db } from './firebase.js';
-    import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
+  <script>
     // ================= ANALYTICS =================
     function updateAnalytics() {
-      const todos = JSON.parse(localStorage.getItem("ezbac_todos")) || [];
-      const completedTodos = todos.filter(t => t.completed).length;
-      const progress = todos.length ? Math.round((completedTodos / todos.length) * 100) : 0;
+        const todos = window.currentTodos || [];
+        const completedTodos = todos.filter(t => parseInt(t.is_completed)).length;
+        const progress = todos.length ? Math.round((completedTodos / todos.length) * 100) : 0;
 
-      const statTitles = document.querySelectorAll(".stat-card h1");
-      if (statTitles.length >= 3) {
-        statTitles[0].innerText = progress + "%";
-        statTitles[1].innerText = localStorage.getItem("ezbac_completed_courses") || "0";
-        statTitles[2].innerText = localStorage.getItem("ezbac_study_hours") || "0";
-      }
+        const statTitles = document.querySelectorAll(".stat-card h1");
+        if (statTitles.length >= 3) {
+            statTitles[0].innerText = progress + "%";
+            statTitles[1].innerText = localStorage.getItem("ezbac_completed_courses") || "0";
+            statTitles[2].innerText = localStorage.getItem("ezbac_study_hours") || "0";
+        }
     }
 
     // ================= DYNAMIC CONTENT FETCHING =================
     async function loadDashboardContent() {
       try {
-        // Fetch Flashcards
-        const flashSnap = await getDocs(collection(db, "flashcards"));
-        const flashcards = [];
-        flashSnap.forEach(doc => flashcards.push({ id: doc.id, ...doc.data() }));
+        const flashRes = await fetch('api/flashcards.php');
+        const flashcards = await flashRes.json();
         renderCards("flashcardsContainer", flashcards, "flashcard");
 
-        // Fetch Resources (as resumes)
-        const resSnap = await getDocs(collection(db, "resources"));
-        const resources = [];
-        resSnap.forEach(doc => resources.push({ id: doc.id, ...doc.data() }));
+        const resRes = await fetch('api/resources.php');
+        const resources = await resRes.json();
         renderCards("resumesContainer", resources, "resource");
       } catch (err) {
         console.error("Dashboard Load Error:", err);
@@ -202,12 +197,12 @@
       if (!container) return;
 
       container.innerHTML = "";
-      if (data.length === 0) {
+      if (!data || data.length === 0) {
         container.innerHTML = `<p style="padding: 20px; color: #888; font-size: 14px;">No ${category}s available yet.</p>`;
         return;
       }
 
-      data.slice(0, 6).forEach(item => { // Show max 6
+      data.slice(0, 6).forEach(item => {
         const card = document.createElement("div");
         card.classList.add("course-card");
         card.style.cursor = "pointer";
@@ -243,12 +238,13 @@
     }
 
     // ================= TO-DO SYNC =================
-    let todos = JSON.parse(localStorage.getItem("ezbac_todos")) || [];
+    window.currentTodos = [];
 
-    function saveAndRenderTodos() {
-      localStorage.setItem("ezbac_todos", JSON.stringify(todos));
-      renderTodoList();
-      updateAnalytics();
+    async function fetchTodos() {
+        const res = await fetch('api/todos.php');
+        window.currentTodos = await res.json();
+        renderTodoList();
+        updateAnalytics();
     }
 
     function renderTodoList() {
@@ -256,30 +252,35 @@
       if (!list) return;
 
       list.innerHTML = "";
-      todos.forEach((todo, index) => {
+      window.currentTodos.forEach((todo) => {
+        const isCompleted = parseInt(todo.is_completed);
         const item = document.createElement("div");
-        item.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+        item.className = `todo-item ${isCompleted ? 'completed' : ''}`;
 
         item.innerHTML = `
-          <div class="checkbox" onclick="window.toggleTodo(${index})">${todo.completed ? '✓' : ''}</div>
+          <div class="checkbox" onclick="window.toggleTodo(${todo.id}, ${isCompleted ? 0 : 1})">${isCompleted ? '✓' : ''}</div>
           <div class="todo-content">
-            <h3>${todo.text}</h3>
-            <p>${todo.date || 'Today'}</p>
+            <h3>${todo.task_text}</h3>
+            <p>${todo.task_date || 'Today'}</p>
           </div>
-          <div class="delete-btn" onclick="window.deleteTodo(${index})">✕</div>
+          <div class="delete-btn" onclick="window.deleteTodo(${todo.id})">✕</div>
         `;
         list.appendChild(item);
       });
     }
 
-    window.toggleTodo = function (index) {
-      todos[index].completed = !todos[index].completed;
-      saveAndRenderTodos();
+    window.toggleTodo = async function (id, newState) {
+        await fetch('api/todos.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, completed: newState })
+        });
+        fetchTodos();
     };
 
-    window.deleteTodo = function (index) {
-      todos.splice(index, 1);
-      saveAndRenderTodos();
+    window.deleteTodo = async function (id) {
+        await fetch(`api/todos.php?id=${id}`, { method: 'DELETE' });
+        fetchTodos();
     };
 
     const addBtn = document.querySelector(".add-btn");
@@ -293,16 +294,21 @@
         if (isHidden) input.focus();
       });
 
-      input.addEventListener("keypress", (e) => {
+      input.addEventListener("keypress", async (e) => {
         if (e.key === "Enter" && input.value.trim()) {
-          todos.push({
+          const newTodo = {
             text: input.value.trim(),
-            completed: false,
+            completed: 0,
             date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+          };
+          await fetch('api/todos.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newTodo)
           });
           input.value = "";
           inputBox.style.display = "none";
-          saveAndRenderTodos();
+          fetchTodos();
         }
       });
     }
@@ -366,8 +372,7 @@
     // ================= INITIALIZE =================
     document.addEventListener("DOMContentLoaded", () => {
       loadDashboardContent();
-      renderTodoList();
-      updateAnalytics();
+      fetchTodos();
       updateHomeTimer();
 
       document.querySelectorAll(".filter-btn").forEach(btn => {
@@ -385,11 +390,9 @@
       function smoothScroll(element, amount, duration) {
         const start = element.scrollLeft;
         const startTime = performance.now();
-
         function animate(currentTime) {
           const elapsed = currentTime - startTime;
           const progress = Math.min(elapsed / duration, 1);
-          // Ease out cubic pattern for a faster but smooth flow
           const ease = 1 - Math.pow(1 - progress, 3);
           element.scrollLeft = start + (amount * ease);
           if (progress < 1) requestAnimationFrame(animate);
@@ -402,13 +405,8 @@
         const container = wrapper ? wrapper.querySelector(".horizontal-courses") : null;
         const leftBtn = section.querySelector(".left");
         const rightBtn = section.querySelector(".right");
-
-        if (container && rightBtn) {
-          rightBtn.onclick = () => smoothScroll(container, 500, 75);
-        }
-        if (container && leftBtn) {
-          leftBtn.onclick = () => smoothScroll(container, -500, 75);
-        }
+        if (container && rightBtn) rightBtn.onclick = () => smoothScroll(container, 500, 75);
+        if (container && leftBtn) leftBtn.onclick = () => smoothScroll(container, -500, 75);
       });
     });
   </script>

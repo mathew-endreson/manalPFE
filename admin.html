@@ -215,6 +215,7 @@
             <button class="nav-btn" data-target="add-flash">➕ Add Flashcard</button>
             <button class="nav-btn" data-target="add-resource">➕ Add Resource</button>
             <button class="nav-btn" data-target="view-data">📋 View Data</button>
+            <button class="nav-btn" data-target="manage-users">👤 Manage Users</button>
             <hr style="width: 100%; border: none; border-top: 1px solid #eee; margin: 20px 0;">
             <button class="nav-btn-exit" onclick="location.href='home.html'">⬅ Exit Admin</button>
         </div>
@@ -320,6 +321,34 @@
                 </div>
             </div>
 
+            <!-- SECTION: MANAGE USERS -->
+            <div id="manage-users" class="admin-section hidden">
+                <div class="section-card">
+                    <h2>User Account Management</h2>
+                    <div id="userList" style="margin-top: 20px;">
+                        <p style="color: #aaa;">Loading users...</p>
+                    </div>
+                </div>
+
+                <!-- Edit User Modal-like Form (Simple) -->
+                <div id="editUserSection" class="section-card hidden">
+                    <h3>Edit User: <span id="editingUserName"></span></h3>
+                    <form id="editUserForm">
+                        <input type="hidden" id="editUserId">
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input type="text" id="editUserUsername" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="editUserEmail" required>
+                        </div>
+                        <button type="submit" class="btn-save">Update User Account</button>
+                        <button type="button" onclick="cancelUserEdit()" style="background: #eee; color: #333; margin-top: 10px;" class="btn-save">Cancel</button>
+                    </form>
+                </div>
+            </div>
+
             <!-- SECTION: VIEW DATA -->
             <div id="view-data" class="admin-section hidden">
                 <div class="section-card">
@@ -340,23 +369,26 @@
 
     <div id="toast">Saved Successfully!</div>
 
-    <!-- FIREBASE SDK -->
-    <script type="module">
-        import { db } from './firebase.js';
-        import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
+    <!-- BACKEND INTEGRATION -->
+    <script>
         let isEditing = false;
         let editingId = null;
         let editingType = null;
 
         // AUTH CHECK
-        window.checkAuth = function() {
+        window.checkAuth = async function() {
             const pass = document.getElementById("adminPass").value;
-            if (pass === "admin123") { // HARDCODED PASSWORD
+            const res = await fetch('api/auth.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: pass })
+            });
+            const data = await res.json();
+            if (data.success) {
                 document.getElementById("loginGate").classList.add("hidden");
                 document.getElementById("adminDashboard").classList.remove("hidden");
             } else {
-                alert("Incorrect Password!");
+                alert(data.message || "Incorrect Password!");
             }
         };
 
@@ -454,26 +486,26 @@
             const data = {
                 subject: subject,
                 title: subject + " Quiz",
-                questions: questions,
-                isMulti: true // For identification
+                questions: questions
             };
+            if(isEditing && editingType === 'quizzes') data.id = editingId;
             
             try {
-                if (isEditing && editingType === 'quizzes') {
-                    await updateDoc(doc(db, "quizzes", editingId), data);
-                    showToast("Quiz Updated!");
-                } else {
-                    await addDoc(collection(db, "quizzes"), data);
-                    showToast("Quiz saved!");
-                }
-                
-                e.target.reset();
-                document.getElementById("questionsContainer").innerHTML = "";
-                addQuestionField(); // Reset to 1 empty question
-                
-                if (isEditing) {
-                    fetchListView('quizzes');
-                    resetEditState();
+                const res = await fetch('api/quizzes.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if(result.success) {
+                    showToast(isEditing ? "Quiz Updated!" : "Quiz Saved!");
+                    e.target.reset();
+                    document.getElementById("questionsContainer").innerHTML = "";
+                    addQuestionField();
+                    if (isEditing) {
+                        fetchListView('quizzes');
+                        resetEditState();
+                    }
                 }
             } catch (err) { alert("Error: " + err.message); }
         };
@@ -485,30 +517,24 @@
             const fEntries = document.querySelectorAll(".flashcard-entry");
             
             try {
-                if (isEditing && editingType === 'flashcards') {
+                for (const entry of fEntries) {
                     const data = {
                         subject: subject,
-                        question: fEntries[0].querySelector(".f-question").value,
-                        answer: fEntries[0].querySelector(".f-answer").value
+                        question: entry.querySelector(".f-question").value,
+                        answer: entry.querySelector(".f-answer").value
                     };
-                    await updateDoc(doc(db, "flashcards", editingId), data);
-                    showToast("Flashcard Updated!");
-                } else {
-                    for (const entry of fEntries) {
-                        const data = {
-                            subject: subject,
-                            question: entry.querySelector(".f-question").value,
-                            answer: entry.querySelector(".f-answer").value
-                        };
-                        await addDoc(collection(db, "flashcards"), data);
-                    }
-                    showToast(`Saved ${fEntries.length} Flashcards!`);
+                    if(isEditing && editingType === 'flashcards') data.id = editingId;
+
+                    await fetch('api/flashcards.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
                 }
-                
+                showToast("Flashcards Saved!");
                 e.target.reset();
                 document.getElementById("flashcardsContainer").innerHTML = "";
-                addFlashcardField(); // Reset to 1 empty flashcard
-                
+                addFlashcardField();
                 if (isEditing) {
                     fetchListView('flashcards');
                     resetEditState();
@@ -519,29 +545,28 @@
         // SAVE RESOURCE
         document.getElementById("resForm").onsubmit = async (e) => {
             e.preventDefault();
-            const url = document.getElementById("r-url").value;
-            if(!url.startsWith("http")) return alert("Please enter a valid URL");
-
             const data = {
                 subject: document.getElementById("r-subject").value,
                 title: document.getElementById("r-title").value,
                 type: document.getElementById("r-type").value,
-                url: url
+                url: document.getElementById("r-url").value
             };
+            if(isEditing && editingType === 'resources') data.id = editingId;
             
             try {
-                if (isEditing && editingType === 'resources') {
-                    await updateDoc(doc(db, "resources", editingId), data);
-                    showToast("Resource Updated!");
-                } else {
-                    await addDoc(collection(db, "resources"), data);
+                const res = await fetch('api/resources.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if(result.success) {
                     showToast("Resource Saved!");
-                }
-                
-                e.target.reset();
-                if (isEditing) {
-                    fetchListView('resources');
-                    resetEditState();
+                    e.target.reset();
+                    if (isEditing) {
+                        fetchListView('resources');
+                        resetEditState();
+                    }
                 }
             } catch (err) { alert("Error: " + err.message); }
         };
@@ -552,35 +577,42 @@
             list.innerHTML = "<p>Loading...</p>";
             
             try {
-                const querySnapshot = await getDocs(collection(db, colName));
+                const res = await fetch(`api/${colName}.php`);
+                const data = await res.json();
                 list.innerHTML = "";
-                querySnapshot.forEach((docSnap) => {
-                    const item = docSnap.data();
+                data.forEach((item) => {
                     const div = document.createElement("div");
                     div.className = "data-item";
-                    div.id = `item-${docSnap.id}`;
+                    div.id = `item-${item.id}`;
                     div.innerHTML = `
-                        <span><strong>[${item.subject}]</strong> ${item.title || (item.question ? item.question.substring(0, 30) : (item.questions ? 'Quiz: ' + item.questions.length + ' questions' : 'No Title'))}</span>
+                        <span><strong>[${item.subject}]</strong> ${item.title || (item.question ? item.question.substring(0, 30) : 'Item')}</span>
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <span class="edit-btn" style="color: #2D2D2D; cursor: pointer; font-weight: bold; background: #eee; padding: 5px 12px; border-radius: 8px;">Edit</span>
-                            <span class="delete-btn" onclick="deleteItem('${colName}', '${docSnap.id}')">✕ Delete</span>
+                            <span class="delete-btn" onclick="deleteItem('${colName}', '${item.id}')">✕ Delete</span>
                         </div>
                     `;
                     
                     const editBtn = div.querySelector(".edit-btn");
-                    editBtn.onclick = () => startEdit(colName, docSnap.id, item);
+                    editBtn.onclick = async () => {
+                        let itemData = item;
+                        if(colName === 'quizzes') {
+                            // Fetch full quiz with questions
+                            const qRes = await fetch(`api/quizzes.php?subject=${item.subject}`);
+                            const qData = await qRes.json();
+                            itemData = qData[0];
+                        }
+                        startEdit(colName, item.id, itemData);
+                    };
                     
                     list.appendChild(div);
                 });
             } catch (err) { 
-                console.error(err);
                 list.innerHTML = "Error loading data."; 
             }
         };
 
         window.startEdit = (colName, id, itemData) => {
-            resetEditState(); // Clean up any previous edit UI
-            
+            resetEditState();
             isEditing = true;
             editingId = id;
             editingType = colName;
@@ -590,19 +622,15 @@
             else if (colName === 'flashcards') targetTab = 'add-flash';
             else if (colName === 'resources') targetTab = 'add-resource';
 
-            // Navigate to tab
             const tabBtn = document.querySelector(`.nav-btn[data-target="${targetTab}"]`);
             if (tabBtn) tabBtn.click();
 
-            // Populate form
             if (colName === 'quizzes') {
                 document.getElementById("edit-label-quiz").classList.remove("hidden");
                 document.getElementById("q-subject").value = itemData.subject;
                 const container = document.getElementById("questionsContainer");
                 container.innerHTML = "";
-                itemData.questions.forEach((q, index) => {
-                    addQuestionField(q, index + 1);
-                });
+                itemData.questions.forEach((q, index) => addQuestionField(q, index + 1));
                 document.querySelector("#quizForm .btn-save").innerText = "Update Quiz Package";
             } else if (colName === 'flashcards') {
                 document.getElementById("edit-label-flash").classList.remove("hidden");
@@ -611,7 +639,6 @@
                 container.innerHTML = "";
                 addFlashcardField(itemData);
                 document.querySelector("#flashForm .btn-save").innerText = "Update Flashcard";
-                // Hide "Add another" button when editing single item
                 document.getElementById("addFlashBtn").classList.add("hidden");
             } else if (colName === 'resources') {
                 document.getElementById("edit-label-res").classList.remove("hidden");
@@ -621,51 +648,94 @@
                 document.getElementById("r-url").value = itemData.url;
                 document.querySelector("#resForm .btn-save").innerText = "Update Resource";
             }
-
-            // UI Polish
-            document.getElementById(targetTab).scrollIntoView({ behavior: 'smooth' });
-            const card = document.querySelector(`#${targetTab} .section-card`);
-            card.style.border = "2px solid var(--primary)";
-            setTimeout(() => card.style.border = "none", 3000);
-            
-            // Highlight in list if still visible
-            const listItem = document.getElementById(`item-${id}`);
-            if(listItem) listItem.style.background = "#fff0f0";
         };
 
         function resetEditState() {
             isEditing = false;
             editingId = null;
             editingType = null;
-            
-            // Hide labels
             document.getElementById("edit-label-quiz").classList.add("hidden");
             document.getElementById("edit-label-flash").classList.add("hidden");
             document.getElementById("edit-label-res").classList.add("hidden");
-            
-            // Reset buttons
             document.querySelector("#quizForm .btn-save").innerText = "Save Quiz Package";
             document.querySelector("#flashForm .btn-save").innerText = "Save Flashcard";
             document.querySelector("#resForm .btn-save").innerText = "Save Resource";
-            
-            // Re-show add buttons
             document.getElementById("addFlashBtn").classList.remove("hidden");
             document.getElementById("addQuestionBtn").classList.remove("hidden");
-            
-            // Clear highlights
-            document.querySelectorAll(".data-item").forEach(item => item.style.background = "transparent");
         }
 
         window.deleteItem = async (colName, id) => {
             if(!confirm("Are you sure?")) return;
             try {
-                await deleteDoc(doc(db, colName, id));
+                await fetch(`api/${colName}.php?id=${id}`, { method: 'DELETE' });
                 showToast("Deleted Successfully!");
                 fetchListView(colName);
                 if (isEditing && editingId === id) resetEditState();
             } catch (err) { alert("Error: " + err.message); }
         };
 
+        // MANAGE USERS LOGIC
+        async function fetchUsers() {
+            const list = document.getElementById("userList");
+            const res = await fetch('api/users.php');
+            const users = await res.json();
+            list.innerHTML = "";
+            users.forEach(user => {
+                const div = document.createElement("div");
+                div.className = "data-item";
+                div.innerHTML = `
+                    <span><strong>${user.username}</strong> (${user.email}) - <em>${user.subject || 'N/A'}</em></span>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick='startEditUser(${JSON.stringify(user)})' style="padding: 5px 10px; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer;">Edit</button>
+                        <button onclick="deleteUser(${user.id})" style="padding: 5px 10px; border-radius: 8px; border: 1px solid #ff4d4d; background: #fff; color: #ff4d4d; cursor: pointer;">Delete</button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        window.startEditUser = (user) => {
+            document.getElementById("editUserSection").classList.remove("hidden");
+            document.getElementById("editUserId").value = user.id;
+            document.getElementById("editingUserName").innerText = user.username;
+            document.getElementById("editUserUsername").value = user.username;
+            document.getElementById("editUserEmail").value = user.email;
+            window.scrollTo(0, document.body.scrollHeight);
+        };
+
+        window.cancelUserEdit = () => {
+            document.getElementById("editUserSection").classList.add("hidden");
+        };
+
+        document.getElementById("editUserForm").onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                id: document.getElementById("editUserId").value,
+                username: document.getElementById("editUserUsername").value,
+                email: document.getElementById("editUserEmail").value
+            };
+            const res = await fetch('api/users.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if ((await res.json()).success) {
+                showToast("User Updated!");
+                cancelUserEdit();
+                fetchUsers();
+            }
+        };
+
+        window.deleteUser = async (id) => {
+            if(!confirm("Delete this user account permanently?")) return;
+            await fetch(`api/users.php?id=${id}`, { method: 'DELETE' });
+            showToast("User Deleted!");
+            fetchUsers();
+        };
+
+        // Load users when clicking the tab
+        document.querySelector('[data-target="manage-users"]').addEventListener('click', fetchUsers);
     </script>
+
 </body>
 </html>

@@ -139,22 +139,17 @@
     </div>
 </div>
 
-<script type="module">
-    import { db } from './firebase.js';
-    import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
+<script>
     let cards = [];
     let currentIndex = 0;
     const selectedSubject = localStorage.getItem("selectedFlashSubject") || "Physics";
 
     async function initFlash() {
         try {
-            const q = query(collection(db, "flashcards"), where("subject", "==", selectedSubject));
-            const querySnapshot = await getDocs(q);
-            
-            querySnapshot.forEach((doc) => cards.push(doc.data()));
+            const res = await fetch(`api/flashcards.php?subject=${selectedSubject}`);
+            cards = await res.json();
 
-            if(cards.length === 0) {
+            if(!cards || cards.length === 0) {
                 document.getElementById("loading").innerHTML = `<h2>No cards for ${selectedSubject}</h2>`;
                 return;
             }
